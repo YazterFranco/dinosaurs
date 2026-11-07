@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>Galería</title>
+<style>body{font-family:sans-serif;background:#f4ecd6;margin:8px}.g{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.c{background:#fffaf0;border-radius:8px;padding:4px;font-size:11px;text-align:center}svg{width:100%;height:auto;display:block}</style>
+<div class="g" id="g"></div>
+<script type="module">
+import { SPECIES } from '../js/data/species.js';
+import { dinoSVG } from '../js/render/dino-svg.js';
+import { wildGenes } from '../js/systems/genetics.js';
+const stage = new URLSearchParams(location.search).get('stage') || 'adulto';
+const wild = new URLSearchParams(location.search).get('wild');
+document.getElementById('g').innerHTML = SPECIES.map(s => `<div class="c">${dinoSVG(s, wild ? wildGenes(s, 80) : null, {stage})}${s.nombre}</div>`).join('');
+</script>

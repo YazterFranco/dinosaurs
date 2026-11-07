@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dino Refugio</title>
+  <meta name="description" content="Excava fósiles reales, recupera su ADN, incuba huevos y cría dinosaurios mientras aprendes cómo vivieron.">
+  <meta name="theme-color" content="#2e6a4e">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%95%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#view">Saltar al contenido</a>
+  <header class="hud" id="hud" hidden>
+    <a class="brand" href="#/parque" aria-label="Dino Refugio, ir al parque">
+      <span class="brand-mark" aria-hidden="true">🦕</span><span class="brand-name">Dino Refugio</span>
+    </a>
+    <div class="hud-stats">
+      <span class="pill pill-visitors" title="Visitantes ahora" data-bind="visitantes"></span>
+      <span class="pill pill-coins" title="Monedas" data-bind="monedas"></span>
+      <a class="level" href="#/misiones" title="Nivel del refugio" data-bind="nivel"></a>
+    </div>
+  </header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <nav class="tabbar" id="tabbar" aria-label="Secciones" hidden>
+    <a href="#/parque" data-tab="parque"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 20V11l6-6 6 6v9M10 20v-5h4v5"/></svg><span>Parque</span></a>
+    <a href="#/criadero" data-tab="criadero"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4 0 7 6 7 10a7 7 0 0 1-14 0c0-4 3-10 7-10z"/><path d="M8.5 13l2 1.5 2-2 2 1.5"/></svg><span>Criadero</span><i class="badge" data-bind="badgeCriadero" hidden></i></a>
+    <a href="#/excavar" data-tab="excavar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6M17 7L6 18M4 20l2-2M14 4c2-1 5-1 6 0M20 10c1-2 1-5 0-6"/></svg><span>Excavar</span></a>
+    <a href="#/dinopedia" data-tab="dinopedia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13M9 7h6"/></svg><span>Dinopedia</span></a>
+    <a href="#/mas" data-tab="mas"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg><span>Más</span><i class="badge" data-bind="badgeMas" hidden></i></a>
+  </nav>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title"></dialog>
+
+  <noscript><p class="noscript">Dino Refugio necesita JavaScript para funcionar.</p></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
