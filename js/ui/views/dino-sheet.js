@@ -6,8 +6,10 @@ import {
   STAT_KEYS, STAT_NAMES, PATTERN_NAMES, VARIANTS, VARIANT_INFO, dominantPattern, variantOf, isCarrier, phenotype,
 } from '../../systems/genetics.js';
 import { dinoSVG } from '../../render/dino-svg.js';
+import { ACCESSORIES } from '../../data/cosmetics.js';
+import { equipAccessory } from '../../systems/rewards.js';
 import {
-  esc, bar, setBar, openSheet, closeSheet, sheetBody, setSheetTick, fmtTime, confirmSheet, heartBurst,
+  esc, bar, setBar, openSheet, closeSheet, sheetBody, setSheetTick, fmtTime, confirmSheet, heartBurst, toast,
 } from '../dom.js';
 
 const REQ = { comida: ['🍽️', 'Tiene hambre de algo rico'], caricia: ['🤚', 'Quiere caricias'], juego: ['⚽', 'Quiere jugar'] };
@@ -30,7 +32,7 @@ function draw(app, id, first = false) {
   const title = `${esc(d.nombre)} <span class="muted small">${d.genes.sexo === 'M' ? '♂ macho' : '♀ hembra'}</span>`;
   const html = `
     <div class="portrait" id="dino-portrait">
-      ${dinoSVG(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: d.animo > 70 ? 'feliz' : '' })}
+      ${dinoSVG(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}
       ${d.peticion ? `<span class="bubble">${REQ[d.peticion.tipo][0]} ${REQ[d.peticion.tipo][1]}</span>` : ''}
     </div>
     <p class="small muted" style="margin-top:8px">${esc(sp.nombre)} · ${stageLabel(stage)} · <a href="#/dinopedia/${sp.id}">Ver en la Dinopedia</a></p>
@@ -126,6 +128,11 @@ function homeTab(s, d, sp) {
       <dt>Crece en</dt><dd>${SIZE_CLASS[sp.tamano].creceMin * 2.5} min de juego</dd>
       <dt>Trofeos</dt><dd>${d.trofeos.length ? d.trofeos.map(() => '🏆').join('') : 'Ninguno aún'}</dd>
     </dl>
+    <span class="field-label">Accesorio <span class="muted small">(suma puntos en el concurso de belleza)</span></span>
+    ${s.recompensas.accesorios.length ? `<div class="acc-pick">
+      <button class="chip" type="button" data-acc="" aria-pressed="${!d.accesorio}">Ninguno</button>
+      ${s.recompensas.accesorios.map((id) => `<button class="chip" type="button" data-acc="${id}" aria-pressed="${d.accesorio === id}">${ACCESSORIES[id].icono} ${esc(ACCESSORIES[id].nombre)}</button>`).join('')}
+    </div>` : '<p class="small muted">Aún no tienes accesorios. Salen en los cofres: <a href="#/recompensas">ver recompensas</a>.</p>'}
     <label class="field-label" for="dn-name">Nombre</label>
     <div class="name-field"><input id="dn-name" maxlength="18" value="${esc(d.nombre)}" autocomplete="off"><button class="btn btn-sm" type="button" data-act="rename">Guardar</button></div>
     <label class="field-label" for="dn-move">Mudar a otro recinto</label>
@@ -146,14 +153,19 @@ function wire(app, id, body) {
     const r = portrait.getBoundingClientRect();
     heartBurst(portrait, r.width / 2 + (Math.random() - 0.5) * 60, r.height / 3, glyph);
   };
+  const combo = (r) => {
+    if (r && r.combo >= 2) toast(`¡Combo x${r.combo}! +${3 * r.combo} monedas`, 'gold', '⚡');
+  };
   const act = (fn, glyph, sfx) => {
     const r = app.do(fn, { render: false, sfx });
     if (r && r.ok) {
       burst(glyph);
       if (r.vinculo) app.sfx.chirp();
+      combo(r);
     }
     draw(app, id);
   };
+  body.querySelectorAll('[data-acc]').forEach((b) => b.addEventListener('click', () => act((s) => equipAccessory(s, id, b.dataset.acc), b.dataset.acc ? ACCESSORIES[b.dataset.acc].icono : '✨')));
   body.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
     const a = b.dataset.act;
     if (a === 'feed') { picking = !picking; app.sfx.tap(); draw(app, id); return; }
@@ -172,7 +184,7 @@ function wire(app, id, body) {
   }));
   body.querySelectorAll('[data-food]').forEach((b) => b.addEventListener('click', () => {
     const r = app.do((s) => G.feed(s, id, b.dataset.food), { render: false });
-    if (r && r.ok) { burst(FOODS[b.dataset.food].icono); picking = false; }
+    if (r && r.ok) { burst(FOODS[b.dataset.food].icono); picking = false; combo(r); }
     draw(app, id);
   }));
 }
@@ -184,7 +196,7 @@ function live(app, id) {
   const d = s.dinos.find((x) => x.id === id);
   const body = sheetBody();
   if (!d || !body) return;
-  const sig = `${G.stageOf(d)}${d.peticion ? d.peticion.tipo : ''}${d.duermeHasta > s.tiempoJuego}${d.enClinica}`;
+  const sig = `${G.stageOf(d)}${d.peticion ? d.peticion.tipo : ''}${d.duermeHasta > s.tiempoJuego}${d.enClinica}${G.moodOf(d, s.tiempoJuego)}`;
   if (lastSig && sig !== lastSig && tab === 'cuidado') { lastSig = sig; draw(app, id); return; }
   lastSig = sig;
   for (const k of ['hambre', 'animo', 'energia', 'salud']) {

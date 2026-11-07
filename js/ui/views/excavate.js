@@ -5,6 +5,9 @@ import {
   createDig, strike, digRewards, COLS, ROWS, PICK_COST, BRUSH_COST,
 } from '../../systems/dig.js';
 import { addDna, addMoney, addXp } from '../../systems/game.js';
+import { energy, spendEnergy, featuredSite } from '../../systems/rewards.js';
+import { hasBonus } from '../../systems/calendar.js';
+import { fmtLong } from './rewards.js';
 import { dinoSVG } from '../../render/dino-svg.js';
 import { esc, bar, setBar, openSheet, closeSheet, toast } from '../dom.js';
 
@@ -43,24 +46,30 @@ export function render(el, params, app) {
   const byCont = {};
   for (const site of SITES) (byCont[site.continente] ||= []).push(site);
   const first = s.contadores.excavaciones === 0;
+  const en = energy(s);
+  const star = featuredSite(s);
   el.innerHTML = `
     <div class="view-head"><div><h1>Excavar</h1><p class="muted">Cada yacimiento es un lugar real. Allí solo aparecen las especies que se hallaron en esas rocas.</p></div></div>
+    <a class="energy-banner" href="#/recompensas"><span class="bolt">⚡</span><span class="grow"><b>Energía de expedición: ${en.valor}/${en.max}</b><span class="small">${en.valor >= en.max ? 'Llena. Cada excavación usa 1.' : `+1 en <span data-ent>${fmtLong(en.proxima)}</span> · Cada excavación usa 1.`}</span></span>${bar((Math.min(en.valor, en.max) / en.max) * 100, 'amber nolow')}</a>
+    ${hasBonus('excavacion') ? '<div class="mission"><span class="mi">⛏️</span><span class="grow"><b>Lunes de campo</b><span class="small">Hoy tienes +8 golpes en cada excavación.</span></span></div>' : ''}
     ${first ? '<div class="mission"><span class="mi">⛏️</span><span class="grow"><b>Tu primera excavación es gratis</b><span class="small">Usa el pico para romper roca rápido y la brocha cerca de los huesos para no dañarlos.</span></span></div>' : ''}
-    ${Object.entries(byCont).map(([cont, sites]) => `<h2 class="continent">${esc(cont)}</h2>${sites.map((site) => siteCard(s, site, first)).join('')}`).join('')}`;
+    ${Object.entries(byCont).map(([cont, sites]) => `<h2 class="continent">${esc(cont)}</h2>${sites.map((site) => siteCard(s, site, first, en.valor, star.id === site.id)).join('')}`).join('')}`;
   el.querySelectorAll('[data-site]').forEach((b) => b.addEventListener('click', () => startDig(app, b.dataset.site)));
 }
 
-function siteCard(s, site, first) {
+function siteCard(s, site, first, en, featured) {
   const locked = s.nivel < site.nivel;
   const cost = first ? 0 : site.costo;
   const per = PERIODS[site.periodo];
-  return `<article class="site${locked ? ' locked' : ''}" style="--rock:${site.roca}">
+  const noEnergy = !first && en < 1;
+  return `<article class="site${locked ? ' locked' : ''}${featured ? ' featured' : ''}" style="--rock:${site.roca}">
     <div>
+      ${featured ? '<span class="tag tag-amber">🌟 Yacimiento de la semana · ADN ×2</span>' : ''}
       <h3>${esc(site.nombre)}</h3>
       <p class="where">${esc(site.lugar)} · <span class="tag tag-${site.periodo.slice(0, 3)}">${per.nombre}</span> ${esc(site.ma)}</p>
     </div>
     ${locked ? `<span class="tag">🔒 Nivel ${site.nivel}</span>`
-      : `<button class="btn btn-sm" type="button" data-site="${site.id}" ${s.monedas >= cost ? '' : 'disabled'}>${cost ? `Excavar · ${cost} 🪙` : 'Excavar gratis'}</button>`}
+      : `<button class="btn btn-sm" type="button" data-site="${site.id}" ${s.monedas >= cost && !noEnergy ? '' : 'disabled'}>${cost ? `Excavar · ⚡1 · ${cost} 🪙` : 'Excavar gratis'}</button>`}
     <div class="species">${site.especies.map((id) => {
       const sp = SPECIES_BY_ID[id];
       const known = (s.genoma[id] || 0) > 0;
@@ -76,8 +85,10 @@ function startDig(app, siteId) {
   const first = s.contadores.excavaciones === 0;
   const cost = first ? 0 : site.costo;
   if (s.monedas < cost) { toast('No te alcanzan las monedas.', 'bad'); return; }
+  if (!first && !spendEnergy(s, 1)) { toast(`Sin energía de expedición. Se recarga 1 cada 10 minutos (próxima en ${fmtLong(energy(s).proxima)}).`, 'bad', '⚡'); return; }
   app.do((st) => { addMoney(st, -cost); return null; }, { render: false, sound: false });
-  dig = createDig(siteId, { guiada: first, energiaExtra: s.mejoras.energia * 6 });
+  dig = createDig(siteId, { guiada: first, energiaExtra: s.mejoras.energia * 6 + (hasBonus('excavacion') ? 8 : 0) });
+  dig.doble = featuredSite(s).id === siteId;
   tool = 'pico';
   app.sfx.dig();
   app.go(`excavar/${siteId}`);
@@ -88,14 +99,15 @@ function renderDig(el, app) {
   el.innerHTML = `<div class="dig-wrap">
     <div class="view-head"><div><h1>${esc(site.nombre)}</h1><p class="muted small">${esc(site.lugar)} · ${esc(site.ma)}</p></div>
       <button class="btn btn-ghost btn-sm" type="button" data-end>Terminar</button></div>
-    <div class="energy"><span>⚡</span>${bar((dig.energia / dig.energiaMax) * 100, 'amber nolow big')}<span data-en>${dig.energia}</span></div>
+    <div class="energy"><span title="Golpes que te quedan">⛏️ Golpes</span>${bar((dig.energia / dig.energiaMax) * 100, 'amber nolow big')}<span data-en>${dig.energia}</span></div>
+    ${dig.doble ? '<p class="small"><span class="tag tag-amber">🌟 ADN ×2 esta semana</span></p>' : ''}
     <div class="dig-board" id="board">
       <div class="dig-items">${dig.items.map((it) => `<div class="dig-item" data-item="${dig.items.indexOf(it)}" style="grid-column:${it.x + 1}/span ${it.w};grid-row:${it.y + 1}/span ${it.h}">${it.tipo === 'hueso' ? boneSvg(it) : `<span class="curio">${it.icono}</span>`}</div>`).join('')}</div>
       <div class="dig-cells">${Array.from({ length: ROWS }).map((_, y) => Array.from({ length: COLS }).map((__, x) => `<button class="cell" type="button" data-x="${x}" data-y="${y}" data-l="${dig.grid[y][x].capa}" aria-label="Roca fila ${y + 1}, columna ${x + 1}"></button>`).join('')).join('')}</div>
     </div>
     <div class="tools" role="group" aria-label="Herramienta">
-      <button class="tool" type="button" data-tool="pico" aria-pressed="${tool === 'pico'}">⛏️ <span>Pico<small>Rompe mucho · ${PICK_COST} ⚡ · puede dañar huesos</small></span></button>
-      <button class="tool" type="button" data-tool="brocha" aria-pressed="${tool === 'brocha'}">🖌️ <span>Brocha<small>Quita una capa · ${BRUSH_COST} ⚡ · segura</small></span></button>
+      <button class="tool" type="button" data-tool="pico" aria-pressed="${tool === 'pico'}">⛏️ <span>Pico<small>Rompe mucho · ${PICK_COST} golpes · puede dañar huesos</small></span></button>
+      <button class="tool" type="button" data-tool="brocha" aria-pressed="${tool === 'brocha'}">🖌️ <span>Brocha<small>Quita una capa · ${BRUSH_COST} golpe · segura</small></span></button>
     </div>
     <div class="finds" id="finds">${foundTags()}</div>
     <p class="small muted" style="margin-top:10px">${esc(site.dato)}</p>
@@ -133,7 +145,7 @@ function paint(el) {
 function hit(app, el, x, y) {
   if (!dig || dig.terminado) return;
   const r = strike(dig, tool, x, y);
-  if (!r.ok) { toast(r.msg, 'bad'); return; }
+  if (!r.ok) { toast(r.msg === 'No te queda energía.' ? 'No te quedan golpes.' : r.msg, 'bad'); return; }
   (tool === 'pico' ? app.sfx.dig : app.sfx.brush)();
   const cellEl = el.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
   cellEl.classList.remove('shake');
@@ -163,6 +175,7 @@ function hit(app, el, x, y) {
 function applyRewards(app) {
   const site = SITES_BY_ID[dig.sitio];
   const { adn, curios } = digRewards(dig);
+  if (dig.doble) for (const k of Object.keys(adn)) adn[k] = Math.round(adn[k] * 20) / 10;
   const lines = [];
   const newSpecies = [];
   const done = dig;
@@ -213,5 +226,14 @@ export function leave() {
     const { lines } = applyRewards(appRef);
     const total = lines.reduce((a, l) => a + l.p, 0);
     toast(total > 0 ? `Excavación guardada: +${total.toFixed(1)} % de ADN.` : 'Dejaste la excavación sin fósiles completos.', total > 0 ? 'good' : '', '⛏️');
+  }
+}
+
+export function tick(app) {
+  const e = document.querySelector('[data-ent]');
+  if (e) {
+    const en = energy(app.state);
+    if (!en.proxima) app.refresh();
+    else e.textContent = fmtLong(en.proxima);
   }
 }

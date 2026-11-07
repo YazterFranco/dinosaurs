@@ -8,6 +8,7 @@ import {
   MAX_ENRICHMENT, UPGRADES, levelFromXp, CURIOS,
 } from '../data/world.js';
 import { wildGenes, breed as breedGenes, variantOf, rarityScore, STAT_KEYS } from './genetics.js';
+import { hasBonus } from './calendar.js';
 
 export const SAVE_VERSION = 1;
 export const OFFLINE_CAP_SEC = 2 * 60 * 60;
@@ -52,18 +53,39 @@ export function createGame(now = Date.now()) {
       medicina: 1,
       curios: {},
     },
-    mejoras: { incubadora: 0, rapida: 0, energia: 0 },
+    mejoras: { incubadora: 0, rapida: 0, energia: 0, mochila: 0 },
     contadores: {
       excavaciones: 0, huesos: 0, curios: 0, huevosSintetizados: 0, eclosiones: 0, alimentar: 0,
       caricias: 0, juegos: 0, peticiones: 0, cruces: 0, quizzes: 0, quizPerfecto: 0,
       concursos: 0, concursosGanados: 0, adultos: 0, rechazos: 0, ganancias: 0,
+      regalos: 0, cobros: 0, cofresAbiertos: 0, vip: 0, mejorCombo: 0,
     },
+    recompensas: defaultRewards(now),
     misiones: [],
     logros: [],
     sitiosVisitados: [],
     ajustes: { sonido: true },
     eventos: [],
   };
+}
+
+export function defaultRewards(now = Date.now()) {
+  return {
+    energia: { valor: 5, ultimo: now },
+    taquilla: 0,
+    diaria: { ultimoDia: null, racha: 0, mejorRacha: 0, escudos: 1 },
+    diarias: { dia: null, lista: [], cofre: false },
+    cofres: [],
+    cofreGratis: now,
+    envios: 0,
+    regalos: [],
+    accesorios: [],
+    combo: { n: 0, hasta: 0 },
+  };
+}
+
+export function boothCap(state) {
+  return Math.max(150, Math.round(parkStats(state).ingresoMin * 120));
 }
 
 export function log(state, texto, icono = '•') {
@@ -103,6 +125,17 @@ export function stageOf(dino) {
   if (dino.edad < grow) return 'cria';
   if (dino.edad < grow * 2.5) return 'juvenil';
   return 'adulto';
+}
+
+/** Expresión de la cara según cómo se siente. */
+export function moodOf(dino, t) {
+  if (dino.duermeHasta > t) return '';
+  if (dino.hambre < 25) return 'hambre';
+  if (dino.energia < 20) return 'cansado';
+  if (dino.animo < 30) return 'triste';
+  if (dino.animo > 85) return 'radiante';
+  if (dino.animo > 65) return 'feliz';
+  return '';
 }
 
 export function growthProgress(dino) {
@@ -220,6 +253,10 @@ function requestGain(sp) {
 export function tick(state, dt, opts = {}) {
   const offline = !!opts.offline;
   const rnd = opts.rnd || Math.random;
+  const now = opts.now || Date.now();
+  const growBoost = hasBonus('crecimiento', now) ? 1.5 : 1;
+  const giftEvery = hasBonus('regalos', now) ? 0.5 : 1;
+  const rw = state.recompensas;
   state.tiempoJuego += dt;
   const t = state.tiempoJuego;
   const events = [];
@@ -260,7 +297,7 @@ export function tick(state, dt, opts = {}) {
     }
 
     const before = stageOf(d);
-    if (d.hambre > 10) d.edad += dt;
+    if (d.hambre > 10) d.edad += dt * growBoost;
     const after = stageOf(d);
     if (after !== before) {
       events.push({ tipo: 'crece', dino: d.id, stage: after });
@@ -270,6 +307,20 @@ export function tick(state, dt, opts = {}) {
         log(state, `${d.nombre} ya es adulto`, '🦖');
       } else {
         log(state, `${d.nombre} ahora es juvenil`, '🌱');
+      }
+    }
+
+    // Regalos: los dinosaurios contentos dejan sorpresas (como en Neko Atsume).
+    if (rw && !asleep && d.animo >= (offline ? 60 : 70)) {
+      if (!d.proxRegalo) d.proxRegalo = t + (60 + rnd() * 60) * giftEvery;
+      if (t >= d.proxRegalo) {
+        d.proxRegalo = t + (90 + rnd() * 80) * giftEvery;
+        if (rw.regalos.length < 10 && rw.regalos.filter((x) => x.recinto === d.recinto).length < 5) {
+          const roll = rnd();
+          const tipo = roll < 0.05 ? 'ambar' : roll < 0.12 ? 'estrella' : roll < 0.35 ? 'hueso' : roll < 0.6 ? 'semilla' : 'pluma';
+          rw.regalos.push({ id: newId('rg'), tipo, recinto: d.recinto, especie: d.especie, x: 0.12 + rnd() * 0.76, y: 0.7 + rnd() * 0.24 });
+          events.push({ tipo: 'regalo', dino: d.id });
+        }
       }
     }
 
@@ -310,14 +361,17 @@ export function tick(state, dt, opts = {}) {
     }
   }
 
-  // Visitantes
+  // Visitantes: pagan en la taquilla, que hay que vaciar de vez en cuando.
   const { ingresoMin } = parkStats(state);
-  const income = ingresoMin * (dt / 60) * (offline ? 0.5 : 1);
-  state._resto = (state._resto || 0) + income;
-  if (state._resto >= 1) {
-    const whole = Math.floor(state._resto);
-    state._resto -= whole;
-    addMoney(state, whole);
+  const fair = hasBonus('visitantes', now) ? 1.5 : 1;
+  const income = ingresoMin * (dt / 60) * (offline ? 0.5 : 1) * fair;
+  if (rw) {
+    const cap = boothCap(state);
+    const before = rw.taquilla;
+    rw.taquilla = Math.min(cap, rw.taquilla + income);
+    if (before < cap && rw.taquilla >= cap && !offline) events.push({ tipo: 'taquillaLlena' });
+  } else {
+    addMoney(state, income);
   }
   return events;
 }
@@ -345,6 +399,17 @@ function findDino(state, id) {
   return d;
 }
 
+/** Combo: cuidados acertados seguidos dan monedas extra. */
+export function bumpCombo(state) {
+  const c = state.recompensas && state.recompensas.combo;
+  if (!c) return 0;
+  c.n = c.hasta >= state.tiempoJuego ? Math.min(10, c.n + 1) : 1;
+  c.hasta = state.tiempoJuego + 25;
+  state.contadores.mejorCombo = Math.max(state.contadores.mejorCombo || 0, c.n);
+  if (c.n >= 2) addMoney(state, 3 * c.n);
+  return c.n;
+}
+
 function fulfill(state, d, tipo) {
   if (d.peticion && d.peticion.tipo === tipo) {
     const sp = SPECIES_BY_ID[d.especie];
@@ -354,6 +419,7 @@ function fulfill(state, d, tipo) {
     d.proxPeticion = state.tiempoJuego + 25 + Math.random() * 15;
     state.contadores.peticiones += 1;
     addXp(state, 4);
+    d.combo = bumpCombo(state);
     return gain;
   }
   return 0;
@@ -385,10 +451,12 @@ export function feed(state, dinoId, foodId) {
   d.animo = Math.min(100, d.animo + (fav ? 8 : 3));
   state.contadores.alimentar += 1;
   addXp(state, 2);
+  d.combo = 0;
   const vin = fulfill(state, d, 'comida');
+  if (fav && !vin) d.combo = bumpCombo(state);
   let extra = '';
   if (food.soloCretacico && sp.periodo !== 'cretacico') extra = ' Curioso: en su época todavía no existían las flores.';
-  return { ok: true, fav, vinculo: vin, msg: `${d.nombre} comió ${food.nombre.toLowerCase()}${fav ? ' (¡su favorito!)' : ''}.${extra}` };
+  return { ok: true, fav, vinculo: vin, combo: d.combo, msg: `${d.nombre} comió ${food.nombre.toLowerCase()}${fav ? ' (¡su favorito!)' : ''}.${extra}` };
 }
 
 export function pet(state, dinoId) {
@@ -398,8 +466,9 @@ export function pet(state, dinoId) {
   d.animo = Math.min(100, d.animo + 6);
   state.contadores.caricias += 1;
   addXp(state, 1);
+  d.combo = 0;
   const vin = fulfill(state, d, 'caricia');
-  return { ok: true, vinculo: vin, msg: `${d.nombre} disfruta las caricias.` };
+  return { ok: true, vinculo: vin, combo: d.combo, msg: `${d.nombre} disfruta las caricias.` };
 }
 
 export function play(state, dinoId) {
@@ -411,8 +480,9 @@ export function play(state, dinoId) {
   d.animo = Math.min(100, d.animo + 14);
   state.contadores.juegos += 1;
   addXp(state, 2);
+  d.combo = 0;
   const vin = fulfill(state, d, 'juego');
-  return { ok: true, vinculo: vin, msg: `${d.nombre} juega feliz.` };
+  return { ok: true, vinculo: vin, combo: d.combo, msg: `${d.nombre} juega feliz.` };
 }
 
 export function rest(state, dinoId) {
@@ -616,9 +686,14 @@ export function breedPair(state, aId, bId, rnd = Math.random) {
 
 // ------------------------------------------------------------------ tienda
 
+export function foodPrice(foodId, now = Date.now()) {
+  const p = FOODS[foodId].precio;
+  return hasBonus('mercado', now) ? Math.max(1, Math.round(p * 0.7)) : p;
+}
+
 export function buyFood(state, foodId, qty = 1) {
   const food = FOODS[foodId];
-  const cost = food.precio * qty;
+  const cost = foodPrice(foodId) * qty;
   if (state.monedas < cost) return { ok: false, msg: 'No te alcanzan las monedas.' };
   addMoney(state, -cost);
   state.inventario.comida[foodId] = (state.inventario.comida[foodId] || 0) + qty;

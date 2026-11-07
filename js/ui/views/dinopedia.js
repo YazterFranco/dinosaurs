@@ -59,7 +59,7 @@ function grid(s) {
     return `<a class="specimen${known ? '' : ' locked'}" href="#/dinopedia/${sp.id}" style="--pc:${PERIODS[sp.periodo].color}">
       ${dinoSVG(sp, null, { silhouette: !known, noShadow: true })}
       <span class="sname">${known ? esc(sp.nombre) : '???'}</span>
-      <span class="smeta">${PERIODS[sp.periodo].nombre}${known ? ` · ${DIETS[sp.dieta].icono}` : ''}</span>
+      <span class="smeta">${PERIODS[sp.periodo].nombre}${known ? ` · ${DIETS[sp.dieta].icono}` : ''}${sp.colorReal ? ' · 🎨' : ''}</span>
       ${known ? bar(g, 'leaf nolow') : ''}
     </a>`;
   }).join('');
@@ -133,6 +133,7 @@ function renderEntry(el, sp, app) {
       </div>
     </div>
     ${sp.noDino ? `<div class="notdino"><b>¡Ojo! No es un dinosaurio.</b> ${esc(sp.noDino)}</div>` : ''}
+    ${sp.colorReal ? `<div class="realcolor"><b>🎨 Color real conocido</b> ${esc(sp.colorReal)} Por eso su ilustración usa esos tonos.</div>` : ''}
     <dl class="facts">
       ${fact('Vivió', maLabel(sp))}
       ${fact('Grupo', sp.grupo)}
@@ -154,7 +155,7 @@ function renderEntry(el, sp, app) {
         <dt>Yacimientos</dt><dd>${sites.map((x) => esc(x.nombre)).join(', ')}</dd>
       </dl>
     </section>
-    <p class="small muted" style="margin-top:16px">Las medidas son estimaciones promedio; cambian según el ejemplar y el estudio. Los colores de la ilustración son imaginados: casi nunca se conserva el color real.</p>`;
+    <p class="small muted" style="margin-top:16px">Las medidas son estimaciones promedio; cambian según el ejemplar y el estudio. ${sp.colorReal ? 'El color de esta especie se reconstruyó a partir de sus fósiles.' : 'Los colores de la ilustración son imaginados: casi nunca se conserva el color real.'}</p>`;
 }
 
 function fact(k, v) {

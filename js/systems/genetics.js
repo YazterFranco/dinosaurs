@@ -60,9 +60,10 @@ function circularMix(h1, h2, r) {
 }
 
 function pickPatternAllele(species, rnd) {
-  const prefersStripes = species.look.feat && species.look.feat.stripes;
+  const feat = species.look.feat || {};
+  const preferred = feat.pattern || (feat.stripes ? 'rayas' : null);
   const roll = rnd();
-  if (prefersStripes && roll < 0.45) return 'rayas';
+  if (preferred && roll < 0.55) return preferred;
   if (roll < 0.55) return 'liso';
   return PATTERNS[Math.floor(rnd() * PATTERNS.length)];
 }
@@ -176,6 +177,7 @@ export function phenotype(genes) {
   const { hue1, hue2, sat, luz } = genes;
   let c = {
     piel: `hsl(${hue1} ${sat}% ${luz}%)`,
+    brillo: `hsl(${hue1} ${Math.min(sat + 6, 70)}% ${Math.min(luz + 13, 80)}%)`,
     vientre: `hsl(${hue1} ${Math.max(sat - 12, 10)}% ${Math.min(luz + 24, 88)}%)`,
     sombra: `hsl(${hue1} ${sat}% ${Math.max(luz - 16, 12)}%)`,
     acento: `hsl(${hue2} ${Math.min(sat + 14, 75)}% ${luz + 2}%)`,
@@ -183,11 +185,11 @@ export function phenotype(genes) {
     ojo: '#1f1a14',
   };
   if (variante === 'a') {
-    c = { piel: 'hsl(30 20% 94%)', vientre: 'hsl(20 30% 97%)', sombra: 'hsl(20 15% 82%)', acento: 'hsl(350 55% 82%)', patron: 'hsl(30 15% 86%)', ojo: '#c2324a' };
+    c = { brillo: 'hsl(30 30% 99%)', piel: 'hsl(30 20% 94%)', vientre: 'hsl(20 30% 97%)', sombra: 'hsl(20 15% 82%)', acento: 'hsl(350 55% 82%)', patron: 'hsl(30 15% 86%)', ojo: '#c2324a' };
   } else if (variante === 'm') {
-    c = { piel: `hsl(${hue1} 14% 17%)`, vientre: `hsl(${hue1} 12% 27%)`, sombra: `hsl(${hue1} 14% 10%)`, acento: `hsl(${hue2} 30% 30%)`, patron: `hsl(${hue1} 10% 9%)`, ojo: '#e3b341' };
+    c = { brillo: `hsl(${hue1} 18% 28%)`, piel: `hsl(${hue1} 14% 17%)`, vientre: `hsl(${hue1} 12% 27%)`, sombra: `hsl(${hue1} 14% 10%)`, acento: `hsl(${hue2} 30% 30%)`, patron: `hsl(${hue1} 10% 9%)`, ojo: '#e3b341' };
   } else if (variante === 'l') {
-    c = { piel: `hsl(${hue1} 22% 88%)`, vientre: `hsl(${hue1} 18% 95%)`, sombra: `hsl(${hue1} 14% 76%)`, acento: `hsl(${hue2} 28% 80%)`, patron: `hsl(${hue1} 18% 78%)`, ojo: '#1f1a14' };
+    c = { brillo: `hsl(${hue1} 26% 95%)`, piel: `hsl(${hue1} 22% 88%)`, vientre: `hsl(${hue1} 18% 95%)`, sombra: `hsl(${hue1} 14% 76%)`, acento: `hsl(${hue2} 28% 80%)`, patron: `hsl(${hue1} 18% 78%)`, ojo: '#1f1a14' };
   }
   return { ...c, patron: c.patron, nombrePatron: patron, variante, patronId: patron };
 }

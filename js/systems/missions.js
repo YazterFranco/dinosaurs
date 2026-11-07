@@ -40,6 +40,12 @@ export const ACHIEVEMENTS = [
   { id: 'campeon5', icono: '🏆', titulo: 'Leyenda de la arena', desc: 'Gana 5 concursos.', check: (s) => c(s).concursosGanados >= 5 },
   { id: 'gigantes', icono: '🦕', titulo: 'Tierra de gigantes', desc: 'Ten un dinosaurio gigante adulto.', check: (s) => s.dinos.some((d) => SPECIES.find((x) => x.id === d.especie).tamano === 'gigante' && stageOf(d) === 'adulto') },
   { id: 'nivel10', icono: '⭐', titulo: 'Refugio de prestigio', desc: 'Llega al nivel 10.', check: (s) => s.nivel >= 10 },
+  { id: 'racha7', icono: '🔥', titulo: 'Una semana sin fallar', desc: 'Llega a 7 días de racha diaria.', check: (s) => s.recompensas && s.recompensas.diaria.mejorRacha >= 7 },
+  { id: 'racha30', icono: '🌋', titulo: 'Racha volcánica', desc: 'Llega a 30 días de racha diaria.', check: (s) => s.recompensas && s.recompensas.diaria.mejorRacha >= 30 },
+  { id: 'cofres10', icono: '📦', titulo: 'Cazatesoros', desc: 'Abre 10 cofres.', check: (s) => (c(s).cofresAbiertos || 0) >= 10 },
+  { id: 'moda5', icono: '🎀', titulo: 'Pasarela jurásica', desc: 'Colecciona 5 accesorios distintos.', check: (s) => s.recompensas && s.recompensas.accesorios.length >= 5 },
+  { id: 'combo5', icono: '⚡', titulo: 'Cuidador veloz', desc: 'Haz un combo de cuidados x5.', check: (s) => (c(s).mejorCombo || 0) >= 5 },
+  { id: 'colorReal', icono: '🎨', titulo: 'Colores verdaderos', desc: 'Descubre las 3 especies con color real conocido por sus fósiles.', check: (s) => ['sinosauropteryx', 'psittacosaurus', 'borealopelta'].every((id) => s.genoma[id] > 0) },
 ];
 
 export function currentMission(state) {

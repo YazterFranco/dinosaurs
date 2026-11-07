@@ -65,4 +65,6 @@ export const sfx = {
   },
   chirp: () => { tone(1500, 0.06, 'sine', 0.08, 0, 2200); tone(1700, 0.06, 'sine', 0.08, 0.08, 2400); },
   level: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.12, i * 0.1)),
+  chest: () => { noise(0.25, 0.2, 600); [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.05, 0.2 + i * 0.06)); },
+  collect: () => { tone(880, 0.06, 'triangle', 0.1); tone(1320, 0.1, 'triangle', 0.1, 0.05); },
 };

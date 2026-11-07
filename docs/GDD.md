@@ -54,7 +54,7 @@ sin dependencias, publicable en GitHub Pages. Partida guardada en el navegador.
   de las crías.
 - **Medio (minutos):** excavar un sitio, incubar un huevo, ver crecer a una cría,
   responder un quiz.
-- **Largo (días):** completar los 35 registros de la Dinopedia, criar variantes
+- **Largo (días):** completar los 41 registros de la Dinopedia, criar variantes
   raras (albino, melanístico, leucístico), ganar los cuatro concursos, subir al
   nivel máximo del refugio.
 
@@ -158,6 +158,36 @@ Cuatro pruebas que dan sentido a criar mejores ejemplares:
 - Logros de colección, crianza, concursos y conocimiento.
 - Nivel del refugio por XP: desbloquea sitios, recintos y ranuras.
 
+## 3.11 Ganas de volver (retención sana)
+
+El objetivo es que el jugador **quiera** volver, no que **tenga** que volver.
+Nada se pierde por no jugar y no hay compras con dinero real.
+
+| Sistema | Cómo funciona | Referencia |
+|---|---|---|
+| Racha diaria | Calendario de 7 días con premios crecientes (día 7: cofre de oro). Bonus de monedas por rachas largas. | Duolingo, calendarios de login |
+| Escudos de racha | Cada 7 días ganas un escudo (máx. 2) que protege la racha si faltas un día. | "Forgiving streaks" y *streak freeze* |
+| Misiones de hoy | 3 misiones aleatorias por día (alimentar, excavar, quiz…) + cofre de plata al completarlas. | Juegos de colección diarios |
+| Envío de suministros | Cofre gratis cada 4 horas; cada tercer envío es de plata. | Cofres con temporizador |
+| Cofres | Premios variables: monedas, comida, ADN (a veces una especie nueva), energía, accesorios y huevos dorados con genes raros. | Recompensa variable |
+| Energía de expedición | 5 cargas (+1 por mejora de mochila). Cada excavación usa 1 y se recarga 1 cada 10 min. Se llena al subir de nivel. | *Jurassic World Alive*, juegos de energía |
+| Taquilla | Los visitantes pagan en la taquilla (tope de ~2 h de ingresos) y hay que cobrarla. | Juegos *idle* |
+| Regalos | Los dinosaurios contentos dejan plumas, semillas, huesitos, ámbar o estrellas, también mientras no juegas. | *Neko Atsume* |
+| Visitante especial | Una fotógrafa aparece de vez en cuando en el parque; tocarla da monedas. | "Golden cookie" de juegos *idle* |
+| Combos | Cuidados acertados seguidos (petición o comida favorita) suman monedas extra. | Juegos de acción casual |
+| Bonus del día | Uno distinto por día de la semana (feria, campo, ciencia, mercado, regalos, estirón, campeones). | Eventos rotativos |
+| Yacimiento de la semana | Un yacimiento desbloqueado da ADN ×2 durante la semana. | Eventos semanales |
+| Subida de nivel | Celebración, cofre (oro cada 5 niveles), energía llena y lista de lo desbloqueado. | — |
+| Accesorios | 9 accesorios (común a legendario) que se ven en el dinosaurio y suman en el concurso de belleza. | Cosméticos coleccionables |
+| Caras y emociones | Los dinosaurios cambian de expresión según hambre, cansancio, tristeza o felicidad. | Tamagotchi |
+
+**Límites éticos:** sin anuncios, sin pagos, sin castigos por ausencia (las
+necesidades no bajan de 35 fuera de línea y nadie muere), los temporizadores
+nunca hacen perder lo ganado y la racha perdida se reinicia con un mensaje
+amable. Esto sigue las recomendaciones de investigaciones sobre patrones
+oscuros en juegos infantiles (presión de tiempo, muros de pago y recompensas
+parecidas al azar con dinero real).
+
 ## 4. Dirección visual
 
 - **Concepto:** estación de campo en un bosque de helechos. Nada de "papel
@@ -193,11 +223,19 @@ Cuatro pruebas que dan sentido a criar mejores ejemplares:
   mutaciones.
 - *Prehistoric Kingdom*: variantes albino/melanístico/leucístico procedurales,
   necesidades basadas en investigación.
-- *Jurassic World Alive*: colección por ADN y rareza.
+- *Jurassic World Alive*: colección por ADN y rareza, energía para expediciones.
+- *Neko Atsume*: regalos que se acumulan mientras no juegas, sin castigos.
+- Duolingo: rachas, escudos de racha e hitos celebrados.
 - *Tamagotchi* / *Neko Atsume*: cuidado diario y sesiones cortas.
 - *Pokémon* (mina subterránea): minijuego de excavación por capas.
 
 **Ciencia y diseño**
+
+- Cullen et al. (2023), *Science*: los terópodos como el T. rex tenían labios
+  que cubrían sus dientes. Por eso los dibujos no muestran dientes.
+- Color real por melanosomas y pigmentos: Sinosauropteryx (lomo rojizo,
+  antifaz y cola anillada), Psittacosaurus (contrasombreado) y Borealopelta
+  (marrón rojizo contrasombreado).
 
 - Natural History Museum (Londres), *Dino Directory*.
 - *Alba: A Wildlife Adventure* (ustwo games), dirección de arte.

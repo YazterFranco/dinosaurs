@@ -3,6 +3,7 @@ import { buildQuiz } from '../../data/quiz.js';
 import { SPECIES_BY_ID } from '../../data/species.js';
 import { knownSpecies, addMoney, addXp, addDna } from '../../systems/game.js';
 import { esc } from '../dom.js';
+import { hasBonus } from '../../systems/calendar.js';
 
 const N = 5;
 let q = null;
@@ -56,7 +57,7 @@ function question(el, app) {
 
 function summary(el, app) {
   const perfect = q.ok === q.items.length;
-  const coins = q.ok * 15 + (perfect ? 50 : 0);
+  const coins = (q.ok * 15 + (perfect ? 50 : 0)) * (hasBonus('quiz') ? 2 : 1);
   let dnaMsg = '';
   if (!q.paid) {
     q.paid = true;

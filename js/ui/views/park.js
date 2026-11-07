@@ -2,21 +2,28 @@
 import { SPECIES_BY_ID } from '../../data/species.js';
 import { BIOMES, ENRICHMENT, ENCLOSURE_CAPACITY } from '../../data/world.js';
 import {
-  dinosIn, stageOf, comfortOf, attractionOf,
+  dinosIn, stageOf, comfortOf, attractionOf, moodOf, boothCap,
 } from '../../systems/game.js';
+import * as R from '../../systems/rewards.js';
+import { dayBonus, msToMidnight } from '../../systems/calendar.js';
+import { fmtLong, dailySheet, openChestSheet } from './rewards.js';
 import { currentMission } from '../../systems/missions.js';
 import { dinoSVG } from '../../render/dino-svg.js';
-import { esc, bar, setBar, heartBurst } from '../dom.js';
+import { esc, bar, setBar, heartBurst, toast } from '../dom.js';
 
 const SIZE_W = { pequeno: 0.27, mediano: 0.33, grande: 0.41, gigante: 0.5 };
 const STAGE_S = { cria: 0.62, juvenil: 0.82, adulto: 1 };
 const REQ_ICON = { comida: '🍽️', caricia: '🤚', juego: '⚽' };
+const EMOTE = { hambre: '🍖', cansado: '💤', triste: '💧', radiante: '💖' };
 const DECOR_SPOTS = [[0.12, 0.62], [0.88, 0.6], [0.66, 0.95], [0.34, 0.97]];
 
 const pos = new Map();
 let selected = null;
 let raf = 0;
 let sceneSig = '';
+let giftSig = '';
+let vip = null;
+let nextVip = performance.now() + 45000;
 
 export function render(el, params, app) {
   const s = app.state;
@@ -30,6 +37,7 @@ export function render(el, params, app) {
   const visitors = Math.round(dinos.reduce((a, d) => a + attractionOf(s, d), 0) / 4);
 
   el.innerHTML = `
+    ${todayPanel(s)}
     ${mission ? `<a class="mission" href="#/${mission.ir}"><span class="mi" aria-hidden="true">🧭</span><span class="grow"><b>${esc(mission.titulo)}</b><span class="small">${esc(mission.desc)}</span></span><span class="tag tag-amber">+${mission.premio} 🪙</span></a>` : ''}
     <div class="chips" role="tablist" aria-label="Recintos">
       ${s.recintos.map((r) => `<button class="chip" role="tab" type="button" aria-selected="${r.id === rec.id}" data-rec="${r.id}">${BIOMES[r.bioma].icono} ${esc(r.nombre)} <span class="muted small">${dinosIn(s, r.id).length}/${ENCLOSURE_CAPACITY}</span></button>`).join('')}
@@ -43,7 +51,10 @@ export function render(el, params, app) {
         <span class="tag" title="Visitantes mirando este recinto">👥 ${visitors}</span>
       </div>
       ${rec.enriquecimiento.map((id, i) => `<span class="decor" style="left:${DECOR_SPOTS[i][0] * 100}%;top:${DECOR_SPOTS[i][1] * 100}%" title="${esc(ENRICHMENT[id].nombre)}">${ENRICHMENT[id].icono}</span>`).join('')}
+      <div id="gifts"></div>
       <div id="walkers"></div>
+      <div id="vip"></div>
+      <button class="booth${s.recompensas.taquilla >= boothCap(s) ? ' full' : ''}" type="button" id="booth" aria-label="Cobrar taquilla">🎟️ <span data-booth>${Math.floor(s.recompensas.taquilla)}</span></button>
     </div>
     <p class="small muted" style="margin-top:8px">${esc(biome.dato)}</p>
     <div class="section-head section"><h2>Habitantes</h2><a class="btn btn-ghost btn-sm" href="#/tienda/enriquecimiento">Mejorar recinto</a></div>
@@ -59,8 +70,102 @@ export function render(el, params, app) {
   }));
   el.querySelectorAll('[data-dino]').forEach((b) => b.addEventListener('click', () => app.openDino(b.dataset.dino)));
   sceneSig = '';
+  giftSig = '';
   drawWalkers(app);
+  drawGifts(app);
+  wirePanel(el, app);
+  el.querySelector('#booth').addEventListener('click', (e) => collectBooth(app, e));
   startLoop(app);
+}
+
+// ---------- Panel de hoy ----------
+function todayPanel(s) {
+  const now = Date.now();
+  const st = R.dailyStatus(s, now);
+  const free = R.freeChestStatus(s, now);
+  const dm = R.dailyMissions(s, now);
+  const done = dm.filter((m) => m.progreso >= m.meta).length;
+  const claimable = dm.some((m) => !m.reclamada && m.progreso >= m.meta) || (dm.every((m) => m.reclamada) && !s.recompensas.diarias.cofre);
+  const bonus = dayBonus(now);
+  const chests = s.recompensas.cofres.length;
+  const cap = boothCap(s);
+  const booth = s.recompensas.taquilla;
+  return `<div class="today" role="region" aria-label="Hoy en el refugio">
+    <button class="tcard${booth >= cap * 0.5 ? ' hot' : ''}" type="button" data-p="booth"><span class="ti">🎟️</span><b>Taquilla</b><span data-pbooth>${Math.floor(booth)} / ${cap}</span></button>
+    <button class="tcard${st.disponible ? ' hot' : ''}" type="button" data-p="daily"><span class="ti">${st.disponible ? '🎁' : '🔥'}</span><b>${st.disponible ? '¡Regalo!' : `Racha ${s.recompensas.diaria.racha}`}</b><span>${st.disponible ? 'Reclámalo' : `en ${fmtLong(msToMidnight(now))}`}</span></button>
+    <button class="tcard${free.listo || chests ? ' hot' : ''}" type="button" data-p="chest"><span class="ti">📦</span><b>${chests ? `${chests} cofre${chests > 1 ? 's' : ''}` : 'Envío gratis'}</b><span data-pfree>${free.listo ? '¡Listo!' : fmtLong(free.faltaMs)}</span></button>
+    <a class="tcard${claimable ? ' hot' : ''}" href="#/recompensas"><span class="ti">📋</span><b>Misiones</b><span>${done}/3 de hoy</span></a>
+    <a class="tcard" href="#/recompensas"><span class="ti">${bonus.icono}</span><b>${esc(bonus.titulo)}</b><span>${esc(bonus.desc)}</span></a>
+  </div>`;
+}
+
+function wirePanel(el, app) {
+  el.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', (e) => {
+    const k = b.dataset.p;
+    if (k === 'booth') collectBooth(app, e);
+    if (k === 'daily') dailySheet(app);
+    if (k === 'chest') {
+      const s = app.state;
+      if (R.freeChestStatus(s).listo) {
+        const r = app.do((st) => R.claimFreeChest(st), { toast: false, render: false });
+        if (r && r.ok) openChestSheet(app, r.cofre.id);
+      } else if (s.recompensas.cofres.length) openChestSheet(app, s.recompensas.cofres[0].id);
+      else app.go('recompensas');
+    }
+  }));
+}
+
+function coinBurst(x, y, text) {
+  const n = document.createElement('span');
+  n.className = 'float-reward';
+  n.textContent = text;
+  n.style.left = `${x}px`;
+  n.style.top = `${y}px`;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 1200);
+}
+
+function collectBooth(app, e) {
+  const r = app.do((st) => R.collectBooth(st), { toast: false, sound: false });
+  if (r && r.ok) {
+    app.sfx.coin();
+    coinBurst(e.clientX, e.clientY, `+${r.monedas} 🪙`);
+  } else if (r) toast(r.msg, '', '🎟️');
+}
+
+// ---------- Regalos y visitante especial ----------
+function drawGifts(app) {
+  const s = app.state;
+  const box = document.getElementById('gifts');
+  if (!box) return;
+  const list = s.recompensas.regalos.filter((g) => g.recinto === selected);
+  const sig = list.map((g) => g.id).join('|');
+  if (sig === giftSig) return;
+  giftSig = sig;
+  box.innerHTML = list.map((g) => `<button class="gift" type="button" data-gift="${g.id}" style="left:${g.x * 100}%;top:${g.y * 100}%" aria-label="Recoger ${esc(R.GIFTS[g.tipo].nombre)}">${R.GIFTS[g.tipo].icono}</button>`).join('');
+  box.querySelectorAll('[data-gift]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const r = app.do((st) => R.collectGift(st, b.dataset.gift), { toast: false, render: false, sound: false });
+    if (r && r.ok) {
+      app.sfx.collect();
+      coinBurst(e.clientX, e.clientY, r.texto);
+      giftSig = '';
+      drawGifts(app);
+    }
+  }));
+}
+
+function spawnVip(app) {
+  const box = document.getElementById('vip');
+  if (!box || !dinosIn(app.state, selected).length) return;
+  vip = { until: performance.now() + 14000 };
+  box.innerHTML = '<button class="vip" type="button" aria-label="Visitante especial: tócalo">📸<span>¡Foto!</span></button>';
+  box.querySelector('.vip').addEventListener('click', (e) => {
+    const r = app.do((st) => R.vipReward(st), { render: false, sound: false, icon: '📸' });
+    if (r && r.ok) { app.sfx.coin(); coinBurst(e.clientX, e.clientY, `+${r.monedas} 🪙`); }
+    box.innerHTML = '';
+    vip = null;
+  });
 }
 
 function dinoRow(s, d) {
@@ -69,7 +174,7 @@ function dinoRow(s, d) {
   const asleep = d.duermeHasta > s.tiempoJuego;
   const alert = d.peticion || d.hambre < 25 || d.salud < 40 || d.enClinica;
   return `<button class="row dino-row" type="button" data-dino="${d.id}" data-row="${d.id}">
-    <span class="thumb">${dinoSVG(sp, d.genes, { stage, sleeping: asleep, noShadow: true })}</span>
+    <span class="thumb">${dinoSVG(sp, d.genes, { stage, sleeping: asleep, noShadow: true, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}</span>
     <span class="grow">
       <span class="title">${esc(d.nombre)} ${d.genes.sexo === 'M' ? '♂' : '♀'}</span>
       <span class="sub">${esc(sp.corto || sp.nombre)} · ${stage === 'cria' ? 'Cría' : stage === 'juvenil' ? 'Juvenil' : 'Adulto'}${d.enClinica ? ' · <b class="tag tag-warn">En clínica</b>' : ''}${asleep ? ' · 💤' : ''}</span>
@@ -132,7 +237,7 @@ function walkerBox(d, sp, W, H) {
 }
 
 function sigOf(s, d) {
-  return `${d.id}:${stageOf(d)}:${d.duermeHasta > s.tiempoJuego ? 1 : 0}:${d.peticion ? d.peticion.tipo : ''}:${d.animo > 70 ? 1 : 0}`;
+  return `${d.id}:${stageOf(d)}:${d.duermeHasta > s.tiempoJuego ? 1 : 0}:${d.peticion ? d.peticion.tipo : ''}:${moodOf(d, s.tiempoJuego)}:${d.accesorio || ''}`;
 }
 
 function drawWalkers(app) {
@@ -162,8 +267,9 @@ function drawWalkers(app) {
     const stage = stageOf(d);
     const { w } = walkerBox(d, sp, W, H);
     return `<button class="walker${stage === 'cria' && !asleep ? ' hop' : ''}" type="button" data-walk="${d.id}" style="width:${w.toFixed(0)}px" aria-label="${esc(d.nombre)}, ${esc(sp.nombre)}">
-      <span class="flip">${dinoSVG(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: d.animo > 70 ? 'feliz' : '' })}</span>
-      ${d.peticion ? `<span class="bubble" aria-label="Pide ${d.peticion.tipo}">${REQ_ICON[d.peticion.tipo]}</span>` : ''}
+      <span class="flip">${dinoSVG(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}</span>
+      ${d.peticion ? `<span class="bubble" aria-label="Pide ${d.peticion.tipo}">${REQ_ICON[d.peticion.tipo]}</span>`
+        : EMOTE[moodOf(d, s.tiempoJuego)] ? `<span class="bubble thought" aria-hidden="true">${EMOTE[moodOf(d, s.tiempoJuego)]}</span>` : ''}
       <span class="nametag">${esc(d.nombre)}</span>
     </button>`;
   }).join('');
@@ -219,6 +325,8 @@ function startLoop(app) {
       }
     }
     place(s);
+    if (!vip && now > nextVip) { spawnVip(app); nextVip = now + 70000 + Math.random() * 90000; }
+    if (vip && now > vip.until) { const b = document.getElementById('vip'); if (b) b.innerHTML = ''; vip = null; }
     raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
@@ -227,6 +335,17 @@ function startLoop(app) {
 export function tick(app) {
   const s = app.state;
   drawWalkers(app);
+  drawGifts(app);
+  const cap = boothCap(s);
+  const bt = document.querySelector('[data-booth]');
+  if (bt) {
+    bt.textContent = Math.floor(s.recompensas.taquilla);
+    bt.parentElement.classList.toggle('full', s.recompensas.taquilla >= cap);
+  }
+  const pb = document.querySelector('[data-pbooth]');
+  if (pb) pb.textContent = `${Math.floor(s.recompensas.taquilla)} / ${cap}`;
+  const pf = document.querySelector('[data-pfree]');
+  if (pf) { const fr = R.freeChestStatus(s); pf.textContent = fr.listo ? '¡Listo!' : fmtLong(fr.faltaMs); }
   document.querySelectorAll('[data-row]').forEach((row) => {
     const d = s.dinos.find((x) => x.id === row.dataset.row);
     if (!d) return;

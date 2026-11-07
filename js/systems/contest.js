@@ -2,6 +2,8 @@
 import { SPECIES, SPECIES_BY_ID } from '../data/species.js';
 import { effectiveStats, stageOf, addMoney, addXp, CONTEST_COOLDOWN_SEC, log } from './game.js';
 import { rarityScore, dominantPattern } from './genetics.js';
+import { ACCESSORIES } from '../data/cosmetics.js';
+import { hasBonus } from './calendar.js';
 
 export const CONTESTS = {
   carrera: {
@@ -31,7 +33,8 @@ export function contestScore(state, dino, tipo) {
   switch (tipo) {
     case 'carrera': return s.velocidad * 0.75 + dino.energia * 0.25;
     case 'fuerza': return s.fuerza * 0.65 + s.tamano * 0.35;
-    case 'belleza': return 25 * rarityScore(dino.genes) + (dominantPattern(dino.genes.patron) !== 'liso' ? 10 : 0) + dino.animo * 0.45;
+    case 'belleza': return 25 * rarityScore(dino.genes) + (dominantPattern(dino.genes.patron) !== 'liso' ? 10 : 0) + dino.animo * 0.45
+      + (dino.accesorio && ACCESSORIES[dino.accesorio] ? ACCESSORIES[dino.accesorio].bonus : 0);
     case 'ingenio': return s.intelecto * 0.7 + dino.vinculo * 0.3;
     default: return 0;
   }
@@ -73,7 +76,7 @@ export function runContest(state, dinoId, tipo, rnd = Math.random) {
     .sort((a, b) => b.puntos - a.puntos);
   const puesto = tabla.findIndex((x) => x.tuyo) + 1;
   const premios = { 1: 120 + state.nivel * 20, 2: 50 + state.nivel * 6, 3: 20 };
-  const premio = premios[puesto] || 0;
+  const premio = (premios[puesto] || 0) * (hasBonus('concursos') ? 2 : 1);
   addMoney(state, premio);
   addXp(state, puesto === 1 ? 30 : 10);
   if (puesto === 1) {

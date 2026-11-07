@@ -4,6 +4,7 @@ import {
 } from '../../data/world.js';
 import { MISSIONS, ACHIEVEMENTS, currentMission } from '../../systems/missions.js';
 import * as G from '../../systems/game.js';
+import * as R from '../../systems/rewards.js';
 import { exportCode, importCode, clear } from '../../store.js';
 import { setSound } from '../../audio.js';
 import { esc, fmt, fmtTime, confirmSheet, toast } from '../dom.js';
@@ -22,6 +23,7 @@ function hub(el, app) {
   const m = currentMission(s);
   const nCurios = Object.values(s.inventario.curios).reduce((a, b) => a + b, 0);
   const items = [
+    ['recompensas', '🎁', 'Recompensas', 'Racha, cofres, misiones de hoy y accesorios', R.pendingCount(s) > 0],
     ['misiones', '🧭', 'Misiones y logros', m ? m.titulo : '¡Todas completas!', m && m.check(s)],
     ['tienda', '🛒', 'Tienda', 'Comida, recintos y mejoras'],
     ['concursos', '🏆', 'Concursos', 'Carrera, fuerza, belleza, ingenio'],
@@ -64,7 +66,7 @@ function shop(el, params, app) {
   let body = '';
   if (shopTab === 'comida') {
     body = `<div class="shop-grid">${Object.entries(FOODS).map(([id, f]) => `<div class="shop-item"><span class="si">${f.icono}</span><span class="grow"><b>${esc(f.nombre)}</b><span class="sub" style="display:block">Tienes ${s.inventario.comida[id] || 0} · ${esc(f.dato)}</span></span>
-        <span style="display:flex;flex-direction:column;gap:6px"><button class="btn btn-sm" type="button" data-food="${id}" data-q="1">1 · ${f.precio}🪙</button><button class="btn btn-sm btn-ghost" type="button" data-food="${id}" data-q="5">5 · ${f.precio * 5}🪙</button></span></div>`).join('')}
+        <span style="display:flex;flex-direction:column;gap:6px"><button class="btn btn-sm" type="button" data-food="${id}" data-q="1">1 · ${G.foodPrice(id)}🪙</button><button class="btn btn-sm btn-ghost" type="button" data-food="${id}" data-q="5">5 · ${G.foodPrice(id) * 5}🪙</button></span></div>`).join('')}
       <div class="shop-item"><span class="si">${MEDICINE.icono}</span><span class="grow"><b>${MEDICINE.nombre}</b><span class="sub" style="display:block">Tienes ${s.inventario.medicina} · Recupera salud.</span></span><button class="btn btn-sm" type="button" data-med>${MEDICINE.precio}🪙</button></div></div>`;
   } else if (shopTab === 'recintos') {
     body = `<p class="small muted" style="margin-bottom:10px">Cada especie prefiere un hábitat. Un recinto adecuado sube su ánimo y atrae más visitantes.</p>

@@ -19,7 +19,7 @@
       <span class="brand-mark" aria-hidden="true">🦕</span><span class="brand-name">Dino Refugio</span>
     </a>
     <div class="hud-stats">
-      <span class="pill pill-visitors" title="Visitantes ahora" data-bind="visitantes"></span>
+      <a class="pill pill-energy" href="#/recompensas" data-bind="energia"></a>
       <span class="pill pill-coins" title="Monedas" data-bind="monedas"></span>
       <a class="level" href="#/misiones" title="Nivel del refugio" data-bind="nivel"></a>
     </div>
@@ -28,7 +28,7 @@
   <main id="view" tabindex="-1"></main>
 
   <nav class="tabbar" id="tabbar" aria-label="Secciones" hidden>
-    <a href="#/parque" data-tab="parque"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 20V11l6-6 6 6v9M10 20v-5h4v5"/></svg><span>Parque</span></a>
+    <a href="#/parque" data-tab="parque"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 20V11l6-6 6 6v9M10 20v-5h4v5"/></svg><span>Parque</span><i class="badge" data-bind="badgeParque" hidden></i></a>
     <a href="#/criadero" data-tab="criadero"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4 0 7 6 7 10a7 7 0 0 1-14 0c0-4 3-10 7-10z"/><path d="M8.5 13l2 1.5 2-2 2 1.5"/></svg><span>Criadero</span><i class="badge" data-bind="badgeCriadero" hidden></i></a>
     <a href="#/excavar" data-tab="excavar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6M17 7L6 18M4 20l2-2M14 4c2-1 5-1 6 0M20 10c1-2 1-5 0-6"/></svg><span>Excavar</span></a>
     <a href="#/dinopedia" data-tab="dinopedia"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13M9 7h6"/></svg><span>Dinopedia</span></a>

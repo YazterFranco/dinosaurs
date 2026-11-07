@@ -6,6 +6,9 @@ import { sfx, setSound } from './audio.js';
 import { toast, fmt, runSheetTick, sheetOpen, closeSheet } from './ui/dom.js';
 import { XP_LEVELS, MAX_LEVEL } from './data/world.js';
 import { SPECIES_BY_ID } from './data/species.js';
+import * as R from './systems/rewards.js';
+import * as rewardsView from './ui/views/rewards.js';
+import { dailySheet, levelUpSheet, fmtLong } from './ui/views/rewards.js';
 
 import * as starterView from './ui/views/starter.js';
 import * as parkView from './ui/views/park.js';
@@ -31,10 +34,11 @@ const ROUTES = {
   ajustes: moreView,
   quiz: quizView,
   concursos: contestView,
+  recompensas: rewardsView,
 };
 const TAB_OF = {
   parque: 'parque', criadero: 'criadero', excavar: 'excavar', dinopedia: 'dinopedia',
-  mas: 'mas', misiones: 'mas', tienda: 'mas', hallazgos: 'mas', diario: 'mas', ajustes: 'mas', quiz: 'mas', concursos: 'mas',
+  mas: 'mas', misiones: 'mas', tienda: 'mas', hallazgos: 'mas', diario: 'mas', ajustes: 'mas', quiz: 'mas', concursos: 'mas', recompensas: 'parque',
 };
 
 const viewEl = document.getElementById('view');
@@ -98,9 +102,13 @@ function after() {
   }
   if (done.length) sfx.coin();
   if (state.nivel > lastLevel) {
-    toast(`¡Tu refugio subió al nivel ${state.nivel}! Revisa los nuevos yacimientos.`, 'gold', '⭐');
-    sfx.level();
+    let info = null;
+    for (let l = lastLevel + 1; l <= state.nivel; l += 1) info = R.levelUpRewards(state, l);
     lastLevel = state.nivel;
+    const lvl = state.nivel;
+    // Espera a que se cierre lo que esté abierto para celebrar.
+    const show = () => (sheetOpen() ? setTimeout(show, 800) : levelUpSheet(app, lvl, info));
+    setTimeout(show, 400);
   }
   updateHud();
   persist();
@@ -114,7 +122,6 @@ function persist(now = false) {
 
 // ---------- HUD ----------
 function updateHud() {
-  const { visitantes } = G.parkStats(state);
   const coins = document.querySelector('[data-bind="monedas"]');
   coins.textContent = `🪙 ${fmt(state.monedas)}`;
   if (state.monedas > lastCoins) {
@@ -123,7 +130,10 @@ function updateHud() {
     coins.classList.add('bump');
   }
   lastCoins = state.monedas;
-  document.querySelector('[data-bind="visitantes"]').textContent = `👥 ${fmt(visitantes)}`;
+  const en = R.energy(state);
+  const ep = document.querySelector('[data-bind="energia"]');
+  ep.textContent = `⚡ ${en.valor}/${en.max}`;
+  ep.title = en.valor >= en.max ? 'Energía de expedición llena' : `Energía de expedición: +1 en ${fmtLong(en.proxima)}`;
   const lvl = document.querySelector('[data-bind="nivel"]');
   const lo = XP_LEVELS[state.nivel - 1];
   const hi = XP_LEVELS[state.nivel] ?? lo;
@@ -136,6 +146,10 @@ function updateHud() {
   const bc = document.querySelector('[data-bind="badgeCriadero"]');
   bc.hidden = !ready;
   bc.textContent = ready;
+  const pend = R.pendingCount(state);
+  const bp = document.querySelector('[data-bind="badgeParque"]');
+  bp.hidden = !pend;
+  bp.textContent = pend;
   const m = currentMission(state);
   const bm = document.querySelector('[data-bind="badgeMas"]');
   bm.hidden = !(m && m.check(state));
@@ -189,6 +203,8 @@ function handleEvent(ev) {
   } else if (ev.tipo === 'crece' && d) {
     toast(ev.stage === 'adulto' ? `${d.nombre} ya es adulto.` : `${d.nombre} creció: ahora es juvenil.`, 'good', '🌱');
     sfx.roar(ev.stage === 'adulto');
+  } else if (ev.tipo === 'taquillaLlena') {
+    toast('¡La taquilla está llena! Cóbrala en el Parque para que los visitantes sigan pagando.', 'gold', '🎟️');
   } else if (ev.tipo === 'clinica' && d) {
     toast(`${d.nombre} se enfermó y está en la clínica. Págale el tratamiento.`, 'bad', '🏥');
   }
@@ -198,18 +214,26 @@ window.addEventListener('hashchange', route);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) persist(true);
   else {
-    const r = G.catchUp(state);
-    if (r.monedas > 0) toast(`Mientras no estabas, los visitantes dejaron ${fmt(r.monedas)} monedas.`, 'gold', '👥');
+    G.catchUp(state);
     after();
+    maybeDaily();
   }
 });
 window.addEventListener('pagehide', () => persist(true));
 
 // ---------- Inicio ----------
 setSound(state.ajustes.sonido);
+function maybeDaily() {
+  if (!state.iniciado || state.dinos.length === 0) return;
+  if (R.dailyStatus(state).disponible && !sheetOpen()) setTimeout(() => { if (!sheetOpen()) dailySheet(app); }, 700);
+}
+
 if (state.iniciado) {
-  const r = G.catchUp(state);
-  if (r.monedas > 0) setTimeout(() => toast(`¡Bienvenido de vuelta! Los visitantes dejaron ${fmt(r.monedas)} monedas.`, 'gold', '👥'), 600);
+  const before = state.recompensas.taquilla;
+  G.catchUp(state);
+  const gained = Math.floor(state.recompensas.taquilla - before);
+  if (gained > 0) setTimeout(() => toast(`¡Bienvenido de vuelta! Hay ${fmt(gained)} monedas nuevas en la taquilla.`, 'gold', '🎟️'), 600);
+  maybeDaily();
 } else {
   state.ultimo = Date.now();
 }

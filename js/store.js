@@ -1,5 +1,5 @@
 // Guardado en el navegador (localStorage) con exportación por código.
-import { createGame, SAVE_VERSION } from './systems/game.js';
+import { createGame, SAVE_VERSION, defaultRewards } from './systems/game.js';
 
 const KEY = 'dino-refugio-partida';
 
@@ -19,6 +19,9 @@ export function migrate(data) {
   merged.contadores = { ...base.contadores, ...(data.contadores || {}) };
   merged.mejoras = { ...base.mejoras, ...(data.mejoras || {}) };
   merged.ajustes = { ...base.ajustes, ...(data.ajustes || {}) };
+  const rw = defaultRewards();
+  merged.recompensas = { ...rw, ...(data.recompensas || {}) };
+  for (const k of ['energia', 'diaria', 'diarias', 'combo']) merged.recompensas[k] = { ...rw[k], ...((data.recompensas || {})[k] || {}) };
   merged.version = SAVE_VERSION;
   return merged;
 }

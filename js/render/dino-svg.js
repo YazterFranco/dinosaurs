@@ -6,8 +6,10 @@
 // al final se encaja todo en el viewBox.
 
 import { phenotype, rng } from '../systems/genetics.js';
+import { ACCESSORIES } from '../data/cosmetics.js';
 
 const INK = '#2d2a24';
+const CLAW = '#f1e7d0';
 const SW = 2.4; // grosor de contorno
 let uidCounter = 0;
 
@@ -48,7 +50,8 @@ const HEADS = {
  * Devuelve el SVG de un dinosaurio.
  * @param {object} species  especie de species.js
  * @param {object} genes    genes del individuo (o null para el aspecto base)
- * @param {object} opts     { stage: 'cria'|'juvenil'|'adulto', anim: bool, silhouette: bool, sleeping: bool, mood: 'feliz'|'triste' }
+ * @param {object} opts     { stage: 'cria'|'juvenil'|'adulto', anim: bool, silhouette: bool, sleeping: bool,
+ *                           mood: 'feliz'|'radiante'|'triste'|'hambre'|'cansado', accesorio: id }
  */
 export function dinoSVG(species, genes, opts = {}) {
   const stage = opts.stage || 'adulto';
@@ -63,6 +66,8 @@ export function dinoSVG(species, genes, opts = {}) {
   const shade = silhouette ? '#2b2a26' : col.sombra;
   const accent = silhouette ? '#3b3a35' : col.acento;
   const rand = rng(g.seed || 7);
+  // Degradado suave de arriba (luz) hacia abajo (sombra), al estilo de Alba.
+  const bodyFill = silhouette ? fill : `url(#${uid}b)`;
 
   // Proporciones de cría: cabeza y ojos más grandes, cuerpo más corto.
   const baby = stage === 'cria' ? 1 : stage === 'juvenil' ? 0.5 : 0;
@@ -141,7 +146,7 @@ export function dinoSVG(species, genes, opts = {}) {
       const toe = [ankle[0] + L * 0.3, -2];
       const thighW = Math.max(legW * 1.3, ry * 0.45);
       let s = limb([knee, ankle, toe], legW * 0.62, color);
-      s += `<path d="M${f(toe[0] - 2)},${f(-2)} l5,1 M${f(toe[0] - 4)},${f(-1)} l4,2" stroke="${INK}" stroke-width="1.4" stroke-linecap="round"/>`;
+      if (!silhouette) s += `<path d="M${f(toe[0] + legW * 0.3)},${f(-3.5)} l4,2.5 l-4,1 z M${f(toe[0] - 1)},${f(-2.5)} l3.5,2.2 l-3.5,.8 z" fill="${CLAW}" stroke="${INK}" stroke-width="1" stroke-linejoin="round"/>`;
       s += `<ellipse cx="${f(h[0] + L * 0.08)}" cy="${f(h[1] + L * 0.2)}" rx="${f(thighW)}" ry="${f(L * 0.32)}" transform="rotate(-24 ${f(h[0] + L * 0.08)} ${f(h[1] + L * 0.2)})" fill="${color}" stroke="${INK}" stroke-width="${SW}"/>`;
       if (feat.sickle && front) s += `<path d="M${f(toe[0] - L * 0.12)},${f(-3)} q1,-8 -5,-9" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`;
       return s;
@@ -187,6 +192,7 @@ export function dinoSVG(species, genes, opts = {}) {
       const foot = [top[0] + (thigh ? -1 : 1), -w * 0.25];
       let s = limb([top, knee, foot], w, color);
       s += `<path d="M${f(foot[0] - w * 0.55)},${f(-1)} h${f(w * 1.25)}" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>`;
+      if (!silhouette && color === fill) for (let k = 0; k < 3; k += 1) s += `<ellipse cx="${f(foot[0] - w * 0.25 + k * w * 0.32)}" cy="${f(-2.4)}" rx="${f(Math.max(1.2, w * 0.13))}" ry="1.4" fill="${CLAW}" stroke="${INK}" stroke-width=".8"/>`;
       if (thigh) s += `<ellipse cx="${f(top[0])}" cy="${f(top[1] + L * 0.12)}" rx="${f(w * 0.95)}" ry="${f(L * 0.3)}" fill="${color}" stroke="${INK}" stroke-width="${SW}"/>`;
       return s;
     };
@@ -259,6 +265,16 @@ export function dinoSVG(species, genes, opts = {}) {
     }
   }
 
+  if (feat.quills && !silhouette) {
+    for (let i = 0; i < 9; i += 1) {
+      const t = 0.08 + i * 0.09;
+      const x = tb[0] - tailLen * t;
+      const y = tTop[1] + droop * t * 0.4 - (1 - t) * 1.5;
+      const L = (16 - i * 1.1) * (1 - 0.4 * baby);
+      back.push(`<path d="M${f(x)},${f(y + 2)} l${f(-L * 0.25)},${f(-L)}" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/><path d="M${f(x)},${f(y + 2)} l${f(-L * 0.25)},${f(-L)}" stroke="${accent}" stroke-width="1.3" stroke-linecap="round"/>`);
+    }
+  }
+
   // ---------- Torso + cola con patrón ----------
   const bellyF = feat.potBelly ? 1.25 : 1;
   const torso = blobPath(rx, ry, bellyF);
@@ -324,8 +340,11 @@ export function dinoSVG(species, genes, opts = {}) {
     armorSvg += `<path d="M${f(rx * 0.35)},${f(ry * 0.05)} L${f(rx * 0.05)},${f(ry * 0.5)} L${f(rx * 0.5)},${f(ry * 0.25)} Z" fill="#efe6d2" stroke="${INK}" stroke-width="1.6"/>`;
   }
   let shadeSvg = '';
+  let rimSvg = '';
   if (!silhouette) {
-    shadeSvg = `<path d="${blobPath(rx * 0.86, ry * 0.5, bellyF)}" transform="translate(${f(rx * 0.05)} ${f(ry * 0.5)})" fill="${belly}" opacity=".9"/>`;
+    const cs = feat.countershade ? 0.62 : 0.5;
+    shadeSvg = `<path d="${blobPath(rx * 0.86, ry * cs, bellyF)}" transform="translate(${f(rx * 0.05)} ${f(ry * (1 - cs) + ry * 0.02)})" fill="${belly}" opacity=".92"/>`;
+    rimSvg = `<path d="M${f(-rx * 0.62)},${f(-ry * 0.62)} Q${f(-rx * 0.1)},${f(-ry * 1.02)} ${f(rx * 0.5)},${f(-ry * 0.72)}" fill="none" stroke="#fff" stroke-width="${f(Math.max(2, ry * 0.12))}" stroke-linecap="round" opacity=".28"/>`;
     if (feat.iridescent) shadeSvg += `<path d="${torso}" fill="url(#${gradId}i)" opacity=".5"/>`;
   }
 
@@ -333,12 +352,12 @@ export function dinoSVG(species, genes, opts = {}) {
   const torsoGroup = `<g transform="${torsoT}">`
     + back.join('')
     + `<g ${tailCls} style="transform-origin:${f(tb[0])}px ${f(tb[1])}px">`
-    + `<path d="${tailPath}" fill="${fill}" stroke="${INK}" stroke-width="${SW}" stroke-linejoin="round"/>${tailExtra}`
+    + `<path d="${tailPath}" fill="${bodyFill}" stroke="${INK}" stroke-width="${SW}" stroke-linejoin="round"/>${tailExtra}`
     + (patternSvg ? `<g clip-path="url(#${clipId}t)">${patternSvg.tail}</g>` : '')
     + tailTop + '</g>'
     + `<g class="${opts.anim ? 'breathe' : ''}" style="transform-origin:0px ${f(ry)}px">`
-    + `<path d="${torso}" fill="${fill}" stroke="${INK}" stroke-width="${SW}"/>`
-    + `<g clip-path="url(#${clipId})">${shadeSvg}${patternSvg ? patternSvg.body : ''}</g>`
+    + `<path d="${torso}" fill="${bodyFill}" stroke="${INK}" stroke-width="${SW}"/>`
+    + `<g clip-path="url(#${clipId})">${shadeSvg}${patternSvg ? patternSvg.body : ''}${rimSvg}</g>`
     + armorSvg + '</g></g>';
 
   // ---------- Cuello ----------
@@ -350,6 +369,25 @@ export function dinoSVG(species, genes, opts = {}) {
       + `<path d="${d}" fill="none" stroke="${fill}" stroke-width="${f(neckW)}" stroke-linecap="round"/>`;
     if (feat.feathers && !silhouette) {
       neckSvg += `<path d="${d}" fill="none" stroke="${accent}" stroke-width="${f(neckW * 0.45)}" stroke-linecap="round" stroke-dasharray="2 4" opacity=".7"/>`;
+    }
+    if (feat.neckSpines) {
+      // Dos filas de espinas a lo largo del cuello (Amargasaurus).
+      const P0 = [nbW[0] - 4, nbW[1] + 4];
+      const bez = (t) => [
+        (1 - t) ** 2 * P0[0] + 2 * (1 - t) * t * mid[0] + t * t * ne[0],
+        (1 - t) ** 2 * P0[1] + 2 * (1 - t) * t * mid[1] + t * t * ne[1],
+      ];
+      let far = '';
+      let near = '';
+      for (let i = 0; i < 9; i += 1) {
+        const t = 0.1 + i * 0.095;
+        const p = bez(t);
+        const L = (8 + 16 * Math.sin(Math.PI * (0.25 + t * 0.6))) * (1 - 0.5 * baby);
+        const tip = [p[0] - L * 0.35, p[1] - neckW * 0.4 - L];
+        far += `<path d="M${f(p[0] + 2)},${f(p[1] - neckW * 0.2)} L${f(tip[0] + 3)},${f(tip[1] + 1)}" stroke="${INK}" stroke-width="3.2" stroke-linecap="round"/><path d="M${f(p[0] + 2)},${f(p[1] - neckW * 0.2)} L${f(tip[0] + 3)},${f(tip[1] + 1)}" stroke="${shade}" stroke-width="1.6" stroke-linecap="round"/>`;
+        near += `<path d="M${f(p[0])},${f(p[1] - neckW * 0.3)} L${f(tip[0])},${f(tip[1])}" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/><path d="M${f(p[0])},${f(p[1] - neckW * 0.3)} L${f(tip[0])},${f(tip[1])}" stroke="${silhouette ? fill : CLAW}" stroke-width="1.8" stroke-linecap="round"/>`;
+      }
+      neckSvg = far + neckSvg + near;
     }
   }
 
@@ -404,25 +442,43 @@ export function dinoSVG(species, genes, opts = {}) {
     for (let i = 0; i < 5; i += 1) headExtra += `<circle cx="${f(-4 + i * 4)}" cy="${f(-3 - Math.sin((i / 4) * Math.PI) * 4)}" r="1.6" fill="${shade}" stroke="${INK}" stroke-width="1"/>`;
   }
   if (feat.armor) headExtra += '<path d="M-6,-6 l-5,-4 l3,6 z M-6,4 l-6,2 l5,2 z" fill="#efe6d2" stroke="#2d2a24" stroke-width="1.3"/>';
+  if (feat.cheekHorn) headExtra += `<path d="M${ex - 2},${ey + 5} l-6,4 l7,-1 z" fill="${CLAW}" stroke="${INK}" stroke-width="1.1"/>`;
+  if (feat.mask && !silhouette) headExtra += `<path d="M${ex - 6},${ey - 2.5} Q${ex},${ey - 4.5} ${ex + 8},${ey - 1} L${ex + 8},${ey + 2.5} Q${ex},${ey + 1.5} ${ex - 6},${ey + 2.5} Z" fill="${col.patron}" opacity=".75"/>`;
   if (look.head.type === 'dome' && !silhouette) headExtra += `<path d="M-3,-8 C-2,-16 11,-17 14,-8" fill="none" stroke="${accent}" stroke-width="3" opacity=".7"/>`;
 
   const sleeping = !!opts.sleeping;
-  const eyeSvg = silhouette ? '' : sleeping
-    ? `<path d="M${ex - eyeR},${ey} q${eyeR},${eyeR} ${eyeR * 2},0" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>`
-    : `<g class="${opts.anim ? 'blink' : ''}" style="transform-origin:${ex}px ${ey}px"><circle cx="${ex}" cy="${ey}" r="${f(eyeR)}" fill="#fffaf0" stroke="${INK}" stroke-width="1.2"/>`
-      + `<circle cx="${f(ex + eyeR * 0.25)}" cy="${f(ey + 0.2)}" r="${f(eyeR * 0.62)}" fill="${col.ojo}"/>`
-      + `<circle cx="${f(ex + eyeR * 0.45)}" cy="${f(ey - eyeR * 0.3)}" r="${f(eyeR * 0.22)}" fill="#fff"/></g>`;
-  const mouth = opts.mood === 'feliz' && !silhouette
-    ? `<path d="${head.mouth}" fill="none" stroke="${INK}" stroke-width="1.3" stroke-linecap="round" opacity=".7"/>`
+  const mood = opts.mood || '';
+  const pupilDy = mood === 'triste' ? eyeR * 0.25 : 0.2;
+  let eyeSvg = '';
+  if (!silhouette && sleeping) {
+    eyeSvg = `<path d="M${ex - eyeR},${ey} q${eyeR},${eyeR} ${eyeR * 2},0" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round"/>`;
+  } else if (!silhouette && mood === 'radiante') {
+    // Ojos cerrados de felicidad: ^ ^
+    eyeSvg = `<path d="M${f(ex - eyeR)},${f(ey + eyeR * 0.3)} q${f(eyeR)},${f(-eyeR * 1.6)} ${f(eyeR * 2)},0" fill="none" stroke="${INK}" stroke-width="1.7" stroke-linecap="round"/>`;
+  } else if (!silhouette) {
+    eyeSvg = `<g class="${opts.anim ? 'blink' : ''}" style="transform-origin:${ex}px ${ey}px"><circle cx="${ex}" cy="${ey}" r="${f(eyeR)}" fill="#fffaf0" stroke="${INK}" stroke-width="1.2"/>`
+      + `<circle cx="${f(ex + eyeR * 0.25)}" cy="${f(ey + pupilDy)}" r="${f(eyeR * 0.62)}" fill="${col.ojo}"/>`
+      + `<circle cx="${f(ex + eyeR * 0.45)}" cy="${f(ey - eyeR * 0.3 + pupilDy)}" r="${f(eyeR * 0.22)}" fill="#fff"/>`
+      + (mood === 'cansado' ? `<path d="M${f(ex - eyeR - 0.4)},${f(ey - 0.2)} a${f(eyeR + 0.4)},${f(eyeR + 0.4)} 0 0 1 ${f(eyeR * 2 + 0.8)},0 z" fill="${fill}" stroke="${INK}" stroke-width="1"/>` : '')
+      + '</g>';
+    if (mood === 'triste') eyeSvg += `<path d="M${f(ex - eyeR * 1.2)},${f(ey - eyeR * 1.1)} l${f(eyeR * 2.2)},${f(-eyeR * 0.7)}" stroke="${INK}" stroke-width="1.4" stroke-linecap="round"/>`;
+    else if (mood === 'radiante' || mood === 'feliz') eyeSvg += `<path d="M${f(ex - eyeR)},${f(ey - eyeR * 1.5)} q${f(eyeR)},${f(-eyeR * 0.6)} ${f(eyeR * 2)},${f(-eyeR * 0.1)}" stroke="${INK}" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".55"/>`;
+  }
+  const happy = mood === 'feliz' || mood === 'radiante';
+  const mouth = happy && !silhouette
+    ? `<path d="${head.mouth}" fill="none" stroke="${INK}" stroke-width="1.4" stroke-linecap="round" opacity=".75"/>`
     : `<path d="${head.mouth}" fill="none" stroke="${INK}" stroke-width="1.1" stroke-linecap="round" opacity=".45"/>`;
-  const blush = baby && !silhouette ? `<ellipse cx="${ex + 5}" cy="${ey + 6}" rx="3" ry="1.8" fill="#e98a7a" opacity=".45"/>` : '';
+  const drool = mood === 'hambre' && !silhouette && !sleeping ? `<path d="M${f(head.len * 0.55)},${f(4)} q-1.5,4 0,6 q1.5,-2 0,-6" fill="#a6d8ec" stroke="${INK}" stroke-width=".7"/>` : '';
+  const blush = (baby || happy) && !silhouette ? `<ellipse cx="${ex + 5}" cy="${ey + 6}" rx="3" ry="1.8" fill="#e98a7a" opacity="${happy ? 0.6 : 0.45}"/>` : '';
+  const acc = !silhouette && opts.accesorio && ACCESSORIES[opts.accesorio] ? ACCESSORIES[opts.accesorio].svg(ex, ey, head.top || -12) : '';
   const nostril = `<circle cx="${f(head.len - 5)}" cy="${f(-3)}" r="0.9" fill="${INK}" opacity=".6"/>`;
   const headGroup = `<g class="${opts.anim ? 'head-bob' : ''}" style="transform-origin:${f(ne[0])}px ${f(ne[1])}px"><g transform="${headT}">${headBack}`
-    + `<path d="${head.d}" fill="${fill}" stroke="${INK}" stroke-width="${f(SW / headS)}" stroke-linejoin="round"/>`
-    + `${mouth}${nostril}${headExtra}${eyeSvg}${blush}</g></g>`;
+    + `<path d="${head.d}" fill="${bodyFill}" stroke="${INK}" stroke-width="${f(SW / headS)}" stroke-linejoin="round"/>`
+    + `${mouth}${drool}${nostril}${headExtra}${eyeSvg}${blush}${acc}</g></g>`;
 
   // ---------- Encaje en el viewBox ----------
-  const topNeck = ne[1] + ((head.top || -12) - (feat.frill ? 22 : 0) - (feat.horns ? 18 : 0) - (feat.crest === 'tube' ? 20 : feat.crest ? 12 : 0)) * headS;
+  const topNeck = ne[1] + ((head.top || -12) - (feat.frill ? 22 : 0) - (feat.horns ? 18 : 0) - (feat.crest === 'tube' ? 20 : feat.crest ? 12 : 0) - (acc ? 14 : 0)) * headS
+    - (feat.neckSpines ? 26 : 0);
   const topBack = cy - ry - (feat.sail || 0) * 1.1 - (feat.plates ? 22 : 0) - (feat.backSpikes ? 16 : 0);
   const topWing = plan === 'flyer' ? cy - armLen * 0.45 - 6 : 0;
   const minY = Math.min(topNeck, topBack, topWing, -10) - 4;
@@ -434,7 +490,8 @@ export function dinoSVG(species, genes, opts = {}) {
   const tx = (240 - (maxX - minX) * scale) / 2 - minX * scale;
   const ty = 152;
 
-  const defs = silhouette ? '' : `<defs><clipPath id="${clipId}"><path d="${torso}"/></clipPath>`
+  const defs = silhouette ? '' : `<defs><linearGradient id="${uid}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col.brillo}"/><stop offset=".55" stop-color="${fill}"/><stop offset="1" stop-color="${shade}"/></linearGradient>`
+    + `<clipPath id="${clipId}"><path d="${torso}"/></clipPath>`
     + `<clipPath id="${clipId}t"><path d="${tailPath}"/></clipPath>`
     + (feat.iridescent ? `<linearGradient id="${gradId}i" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ad0ff"/><stop offset=".5" stop-color="#8a5bff"/><stop offset="1" stop-color="#2ef0a8"/></linearGradient>` : '')
     + '</defs>';
@@ -474,7 +531,7 @@ export function defaultGenes(species) {
   return {
     seed: species.id.length * 977,
     sexo: 'M', hue1: h1, hue2: h2, sat: 44, luz: 46,
-    patron: [species.look.feat && species.look.feat.stripes ? 'rayas' : 'liso', 'liso'],
+    patron: [(species.look.feat && (species.look.feat.pattern || (species.look.feat.stripes && 'rayas'))) || 'liso', 'liso'],
     variante: ['N', 'N'], stats: { ...species.stats }, mutaciones: 0, generacion: 1,
   };
 }

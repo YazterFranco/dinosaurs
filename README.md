@@ -3,7 +3,8 @@
 Juego web para conocer dinosaurios criándolos. Excavas fósiles en yacimientos
 reales, recuperas su ADN, incubas huevos, cuidas a las crías hasta que crecen,
 las cruzas para obtener colores y variantes raras, y aprendes datos verificados
-de 35 especies del Triásico, el Jurásico y el Cretácico.
+de 41 especies del Triásico, el Jurásico y el Cretácico (tres de ellas con su
+color real, reconstruido a partir de pigmentos fosilizados).
 
 Funciona en el navegador del móvil y de la computadora. No usa dependencias ni
 paso de compilación: HTML, CSS y JavaScript con módulos ES.
@@ -22,7 +23,13 @@ paso de compilación: HTML, CSS y JavaScript con módulos ES.
    patrones y variantes (albino, melanístico, leucístico) pueden salir.
 6. Gana monedas con los **visitantes**, los **concursos** y el **quiz**, y úsalas
    para construir recintos, comprar comida y enriquecimiento.
-7. Completa la **Dinopedia**: cada ficha trae significado del nombre,
+7. **Vuelve cada día**: regalo diario con racha de 7 días (y escudos que la
+   protegen), 3 misiones de hoy, un envío gratis cada 4 horas, cofres con
+   premios sorpresa, accesorios para tus dinosaurios, la taquilla de visitantes
+   que hay que cobrar, regalos que dejan tus dinosaurios felices, combos de
+   cuidado, un bonus distinto cada día de la semana y un yacimiento con ADN
+   doble cada semana. La energía de expedición (⚡) se recarga sola.
+8. Completa la **Dinopedia**: cada ficha trae significado del nombre,
    pronunciación, periodo, tamaño comparado con una persona, quién lo descubrió,
    datos curiosos y "mito vs. realidad".
 
@@ -60,8 +67,9 @@ yacimiento de su mismo periodo y que su comida favorita respeta su dieta.
 index.html               Interfaz principal
 css/styles.css           Estilos (móvil primero)
 js/main.js               Arranque, rutas, bucle de juego, HUD
-js/data/                 Dinopedia (species.js), mundo y tienda (world.js), quiz
-js/systems/              Lógica pura y probada: game, genetics, dig, contest, missions
+js/data/                 Dinopedia (species.js), mundo y tienda (world.js), quiz, accesorios
+js/systems/              Lógica pura y probada: game, genetics, dig, contest, missions,
+                         rewards (energía, racha, cofres, regalos), calendar
 js/render/dino-svg.js    Ilustración paramétrica de dinosaurios y huevos
 js/ui/views/             Pantallas: parque, criadero, excavar, dinopedia, más, quiz, concursos
 docs/GDD.md              Documento de diseño y referencias
@@ -74,8 +82,12 @@ tests/                   Unitarias y E2E
 - Jugabilidad: *Jurassic World Evolution 2* (expediciones, genoma, comodidad),
   *ARK* (impronta y mutaciones), *Prehistoric Kingdom* (variantes genéticas),
   *Tamagotchi* (cuidado), mina subterránea de *Pokémon* (excavación por capas).
+- Retención: rachas y escudos de Duolingo, regalos sin castigo de *Neko Atsume*,
+  energía de *Jurassic World Alive*. Sin pagos ni anuncios.
 - Diseño: *Alba: A Wildlife Adventure* y las fichas de la *Dino Directory* del
-  Natural History Museum de Londres.
+  Natural History Museum de Londres. Paleoarte actualizado (labios en terópodos,
+  plumas, color real conocido).
 
-Las medidas de los animales son estimaciones promedio de la literatura y los
-colores son imaginados, como en cualquier reconstrucción paleontológica.
+Las medidas de los animales son estimaciones promedio de la literatura. Los
+colores son imaginados, como en cualquier reconstrucción paleontológica, salvo
+en las especies cuyo color real se conoce por sus fósiles.

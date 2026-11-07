@@ -6,6 +6,9 @@ import { SPECIES } from '../js/data/species.js';
 import { dinoSVG } from '../js/render/dino-svg.js';
 import { wildGenes } from '../js/systems/genetics.js';
 const stage = new URLSearchParams(location.search).get('stage') || 'adulto';
-const wild = new URLSearchParams(location.search).get('wild');
-document.getElementById('g').innerHTML = SPECIES.map(s => `<div class="c">${dinoSVG(s, wild ? wildGenes(s, 80) : null, {stage})}${s.nombre}</div>`).join('');
+const q = new URLSearchParams(location.search);
+const wild = q.get('wild');
+const mood = q.get('mood') || '';
+const accs = ['', 'sombrero', 'corona', 'gafas', 'mono', 'gorro_fiesta', 'casco_minero', 'flor', 'bufanda', 'corona_ambar'];
+document.getElementById('g').innerHTML = SPECIES.map(s => `<div class="c">${dinoSVG(s, wild ? wildGenes(s, 80) : null, {stage, mood, accesorio: q.get('acc') ? accs[SPECIES.indexOf(s) % accs.length] : ''})}${s.nombre}</div>`).join('');
 </script>

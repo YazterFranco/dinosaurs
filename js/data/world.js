@@ -124,6 +124,12 @@ export const SITES = [
     dato: 'Una cantera con cientos de Coelophysis, quizá muertos juntos por una sequía o inundación.',
   },
   {
+    id: 'two_medicine', nombre: 'Egg Mountain (Formación Two Medicine)', lugar: 'Montana, EE.UU.', continente: 'Norteamérica',
+    periodo: 'cretacico', ma: '~77 Ma', nivel: 3, costo: 70, roca: '#a88a6a',
+    especies: ['maiasaura'],
+    dato: 'Aquí se descubrió en 1978 una colonia de nidos que demostró que algunos dinosaurios cuidaban a sus crías.',
+  },
+  {
     id: 'dinosaur_park', nombre: 'Parque Provincial Dinosaur', lugar: 'Alberta, Canadá', continente: 'Norteamérica',
     periodo: 'cretacico', ma: '76–74 Ma', nivel: 3, costo: 70, roca: '#a99272',
     especies: ['parasaurolophus', 'styracosaurus'],
@@ -174,8 +180,14 @@ export const SITES = [
   {
     id: 'liaoning', nombre: 'Biota de Jehol', lugar: 'Liaoning, China', continente: 'Asia',
     periodo: 'cretacico', ma: '125–120 Ma', nivel: 7, costo: 120, roca: '#8f8a7f',
-    especies: ['microraptor'],
+    especies: ['microraptor', 'sinosauropteryx', 'psittacosaurus'],
     dato: 'Las cenizas volcánicas conservaron plumas, pelo y hasta colores.',
+  },
+  {
+    id: 'clearwater', nombre: 'Mina Millennium (Formación Clearwater)', lugar: 'Alberta, Canadá', continente: 'Norteamérica',
+    periodo: 'cretacico', ma: '~112 Ma', nivel: 7, costo: 130, roca: '#5d5650',
+    especies: ['borealopelta'],
+    dato: 'Hace 112 millones de años era un mar: el Borealopelta flotó hasta allí y se hundió boca arriba.',
   },
   {
     id: 'tendaguru', nombre: 'Tendaguru', lugar: 'Lindi, Tanzania', continente: 'África',
@@ -197,9 +209,15 @@ export const SITES = [
   },
   {
     id: 'patagonia', nombre: 'Patagonia', lugar: 'Neuquén y Chubut, Argentina', continente: 'Sudamérica',
-    periodo: 'cretacico', ma: '100–69 Ma', nivel: 9, costo: 180, roca: '#b07a54',
-    especies: ['argentinosaurus', 'giganotosaurus', 'carnotaurus'],
+    periodo: 'cretacico', ma: '130–69 Ma', nivel: 9, costo: 180, roca: '#b07a54',
+    especies: ['argentinosaurus', 'giganotosaurus', 'carnotaurus', 'amargasaurus'],
     dato: 'Neuquén es tierra de gigantes: aquí vivieron algunos de los dinosaurios más grandes.',
+  },
+  {
+    id: 'javelina', nombre: 'Big Bend (Formación Javelina)', lugar: 'Texas, EE.UU.', continente: 'Norteamérica',
+    periodo: 'cretacico', ma: '68–66 Ma', nivel: 10, costo: 190, roca: '#c9a27a',
+    especies: ['quetzalcoatlus'],
+    dato: 'Hoy es un parque nacional en la frontera con México; entonces era una llanura con ríos.',
   },
   {
     id: 'kem_kem', nombre: 'Kem Kem y Bahariya', lugar: 'Marruecos y Egipto', continente: 'África',
@@ -240,6 +258,7 @@ export const UPGRADES = {
   incubadora: { nombre: 'Ranura de incubadora', icono: '🥚', precios: [500, 1200, 2500], max: 5, base: 2 },
   rapida: { nombre: 'Lámparas de calor', icono: '💡', precios: [800, 2000], max: 2, base: 0, dato: 'Cada nivel acelera la incubación un 25 %.' },
   energia: { nombre: 'Herramientas de excavación', icono: '⛏️', precios: [400, 1000, 2200], max: 3, base: 0, dato: '+6 golpes por excavación en cada nivel.' },
+  mochila: { nombre: 'Mochila de expedición', icono: '🎒', precios: [600, 1500, 3000], max: 3, base: 0, dato: '+1 de energía máxima en cada nivel.' },
 };
 
 export const XP_LEVELS = [0, 60, 160, 320, 540, 820, 1180, 1620, 2150, 2780, 3500, 4350, 5300, 6400, 7700];
