@@ -239,3 +239,8 @@ if (state.iniciado) {
 }
 route();
 setInterval(loop, 1000);
+
+// Instalación como app y juego sin conexión.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo sin conexión */ }));
+}

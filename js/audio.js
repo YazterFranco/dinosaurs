@@ -50,6 +50,10 @@ function noise(dur, vol = 0.2, filterFreq = 800, when = 0) {
   src.start(t);
 }
 
+const vibrate = (p) => {
+  try { if (enabled && navigator.vibrate) navigator.vibrate(p); } catch { /* sin vibración */ }
+};
+
 export const sfx = {
   tap: () => tone(660, 0.06, 'triangle', 0.08),
   ok: () => { tone(523, 0.1, 'triangle', 0.12); tone(784, 0.14, 'triangle', 0.12, 0.08); },
@@ -58,13 +62,13 @@ export const sfx = {
   dig: () => noise(0.12, 0.25, 900),
   brush: () => noise(0.18, 0.1, 2500),
   bone: () => { tone(392, 0.1, 'triangle', 0.12); tone(523, 0.1, 'triangle', 0.12, 0.08); tone(659, 0.2, 'triangle', 0.12, 0.16); },
-  hatch: () => { noise(0.08, 0.2, 3000); tone(1200, 0.08, 'sine', 0.1, 0.12, 1800); tone(1400, 0.1, 'sine', 0.1, 0.24, 2000); },
+  hatch: () => { vibrate([20, 40, 20]); noise(0.08, 0.2, 3000); tone(1200, 0.08, 'sine', 0.1, 0.12, 1800); tone(1400, 0.1, 'sine', 0.1, 0.24, 2000); },
   roar: (big = true) => {
     tone(big ? 110 : 330, 0.6, 'sawtooth', 0.12, 0, big ? 60 : 180);
     noise(0.5, 0.18, big ? 400 : 1500);
   },
   chirp: () => { tone(1500, 0.06, 'sine', 0.08, 0, 2200); tone(1700, 0.06, 'sine', 0.08, 0.08, 2400); },
-  level: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.12, i * 0.1)),
-  chest: () => { noise(0.25, 0.2, 600); [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.05, 0.2 + i * 0.06)); },
-  collect: () => { tone(880, 0.06, 'triangle', 0.1); tone(1320, 0.1, 'triangle', 0.1, 0.05); },
+  level: () => (vibrate([20, 30, 20, 30, 40]), [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.12, i * 0.1))),
+  chest: () => { vibrate([30, 30, 60]); noise(0.25, 0.2, 600); [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.05, 0.2 + i * 0.06)); },
+  collect: () => { vibrate(10); tone(880, 0.06, 'triangle', 0.1); tone(1320, 0.1, 'triangle', 0.1, 0.05); },
 };

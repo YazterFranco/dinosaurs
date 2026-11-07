@@ -70,7 +70,7 @@ export function checkProgress(state) {
     if (a.check(state)) {
       state.logros.push(a.id);
       addMoney(state, 100);
-      addXp(state, 25);
+      addXp(state, 15);
       log(state, `Logro: ${a.titulo}`, a.icono);
       done.push({ tipo: 'logro', ...a });
     }

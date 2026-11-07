@@ -261,7 +261,9 @@ export const UPGRADES = {
   mochila: { nombre: 'Mochila de expedición', icono: '🎒', precios: [600, 1500, 3000], max: 3, base: 0, dato: '+1 de energía máxima en cada nivel.' },
 };
 
-export const XP_LEVELS = [0, 60, 160, 320, 540, 820, 1180, 1620, 2150, 2780, 3500, 4350, 5300, 6400, 7700];
+// Curva ajustada con scripts/simular-economia.mjs: ~nivel 3 el primer día,
+// ~6 la primera semana y el máximo en unas 6–8 semanas de juego diario.
+export const XP_LEVELS = [0, 120, 360, 750, 1300, 2000, 2900, 4000, 5400, 7100, 9100, 11500, 14300, 17600, 21500];
 export const MAX_LEVEL = XP_LEVELS.length;
 
 export function levelFromXp(xp) {

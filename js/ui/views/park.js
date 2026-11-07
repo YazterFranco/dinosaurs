@@ -5,7 +5,7 @@ import {
   dinosIn, stageOf, comfortOf, attractionOf, moodOf, boothCap,
 } from '../../systems/game.js';
 import * as R from '../../systems/rewards.js';
-import { dayBonus, msToMidnight } from '../../systems/calendar.js';
+import { dayBonus, msToMidnight, dayPhase } from '../../systems/calendar.js';
 import { fmtLong, dailySheet, openChestSheet } from './rewards.js';
 import { currentMission } from '../../systems/missions.js';
 import { dinoSVG } from '../../render/dino-svg.js';
@@ -35,6 +35,8 @@ export function render(el, params, app) {
   const dinos = dinosIn(s, rec.id);
   const comfort = dinos.length ? Math.round(dinos.reduce((a, d) => a + comfortOf(s, d).valor, 0) / dinos.length) : null;
   const visitors = Math.round(dinos.reduce((a, d) => a + attractionOf(s, d), 0) / 4);
+  const phase = dayPhase();
+  const coach = s.dinos.length === 1 && s.contadores.alimentar === 0 && s.contadores.caricias === 0;
 
   el.innerHTML = `
     ${todayPanel(s)}
@@ -43,20 +45,23 @@ export function render(el, params, app) {
       ${s.recintos.map((r) => `<button class="chip" role="tab" type="button" aria-selected="${r.id === rec.id}" data-rec="${r.id}">${BIOMES[r.bioma].icono} ${esc(r.nombre)} <span class="muted small">${dinosIn(s, r.id).length}/${ENCLOSURE_CAPACITY}</span></button>`).join('')}
       <a class="chip" href="#/tienda/recintos" aria-label="Construir un recinto">＋ Nuevo</a>
     </div>
-    <div class="diorama" id="diorama" style="--sky2:${biome.cielo[1]}">
-      ${landscape(rec.bioma)}
+    <div class="diorama phase-${phase.id}" id="diorama" style="--sky2:${biome.cielo[1]}">
+      ${landscape(rec.bioma, phase)}
+      ${ambient(phase)}
       <div class="diorama-meta">
         <span class="tag">${biome.icono} ${esc(biome.nombre)}</span>
         ${comfort !== null ? `<span class="tag" title="Comodidad promedio">😊 ${comfort}%</span>` : ''}
         <span class="tag" title="Visitantes mirando este recinto">👥 ${visitors}</span>
+        <span class="tag" title="Hora del día en tu reloj">${phase.icono} ${phase.nombre}</span>
       </div>
+      ${coach ? '<div class="coach" role="note">👆 Toca a tu dinosaurio para cuidarlo</div>' : ''}
       ${rec.enriquecimiento.map((id, i) => `<span class="decor" style="left:${DECOR_SPOTS[i][0] * 100}%;top:${DECOR_SPOTS[i][1] * 100}%" title="${esc(ENRICHMENT[id].nombre)}">${ENRICHMENT[id].icono}</span>`).join('')}
       <div id="gifts"></div>
       <div id="walkers"></div>
       <div id="vip"></div>
       <button class="booth${s.recompensas.taquilla >= boothCap(s) ? ' full' : ''}" type="button" id="booth" aria-label="Cobrar taquilla">🎟️ <span data-booth>${Math.floor(s.recompensas.taquilla)}</span></button>
     </div>
-    <p class="small muted" style="margin-top:8px">${esc(biome.dato)}</p>
+    <p class="small muted" style="margin-top:8px">${esc(phase.id === 'noche' ? 'De noche: un estudio de 2011 sobre los huesos de los ojos sugiere que algunos dinosaurios pequeños, como Microraptor, eran activos de noche.' : biome.dato)}</p>
     <div class="section-head section"><h2>Habitantes</h2><a class="btn btn-ghost btn-sm" href="#/tienda/enriquecimiento">Mejorar recinto</a></div>
     ${dinos.length ? `<div class="dino-cards">${dinos.map((d) => dinoRow(s, d)).join('')}</div>`
       : `<div class="empty"><p>Este recinto está vacío.</p><p class="small">Incuba un huevo en el Criadero: la cría llegará al recinto que mejor le quede.</p><a class="btn" href="#/criadero" style="margin-top:12px">Ir al Criadero</a></div>`}
@@ -187,8 +192,35 @@ function dinoRow(s, d) {
   </button>`;
 }
 
-function landscape(bioma) {
+const SKY = {
+  noche: ['#1b2444', '#3a4a74'],
+  atardecer: ['#f09a6a', '#f8d9a6'],
+  amanecer: ['#f4b9a4', '#faeacd'],
+};
+
+function ambient(phase) {
+  if (phase.id === 'noche') {
+    return `<div class="ambient" aria-hidden="true">${Array.from({ length: 9 }).map((_, i) => `<i class="firefly" style="left:${8 + i * 10.5}%;top:${55 + (i * 37) % 35}%;animation-delay:${(i * 0.7).toFixed(1)}s;animation-duration:${(5 + (i % 4)).toFixed(1)}s"></i>`).join('')}</div>`;
+  }
+  return `<div class="ambient" aria-hidden="true">
+    <svg class="cloud c1" viewBox="0 0 120 40"><path d="M10,32 q-8,0 -8,-8 q0,-9 10,-9 q2,-12 16,-12 q12,0 16,9 q4,-5 11,-5 q12,0 13,11 q12,-1 12,8 q0,6 -8,6 z" fill="#fff" opacity=".85"/></svg>
+    <svg class="cloud c2" viewBox="0 0 120 40"><path d="M10,32 q-8,0 -8,-8 q0,-9 10,-9 q2,-12 16,-12 q12,0 16,9 q4,-5 11,-5 q12,0 13,11 q12,-1 12,8 q0,6 -8,6 z" fill="#fff" opacity=".7"/></svg>
+    ${[0, 1].map((i) => `<svg class="dragonfly d${i}" viewBox="0 0 40 20"><path d="M6,10 h26" stroke="#2f5d6e" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="10" r="2.6" fill="#2f5d6e"/><g class="wings"><ellipse cx="20" cy="5" rx="7" ry="3" fill="#cfe8f0" opacity=".85"/><ellipse cx="20" cy="15" rx="7" ry="3" fill="#cfe8f0" opacity=".85"/></g></svg>`).join('')}
+  </div>`;
+}
+
+function landscape(bioma, phase = { id: 'dia', hora: 12 }) {
   const b = BIOMES[bioma];
+  const sky = SKY[phase.id] || b.cielo;
+  const night = phase.id === 'noche';
+  // El sol recorre el cielo de 6 a 20 h; la luna sale de noche.
+  const t = Math.min(1, Math.max(0, (phase.hora - 6) / 14));
+  const sunX = 30 + t * 340;
+  const sunY = 70 - Math.sin(t * Math.PI) * 45;
+  const celestial = night
+    ? `${Array.from({ length: 24 }).map((_, i) => `<circle class="star" cx="${(i * 47) % 400}" cy="${8 + ((i * 29) % 90)}" r="${i % 3 ? 0.9 : 1.5}" fill="#fff" style="animation-delay:${(i % 7) * 0.4}s"/>`).join('')}
+       <circle cx="320" cy="42" r="16" fill="#f4f1d0"/><circle cx="328" cy="36" r="14" fill="${sky[0]}"/>`
+    : `<circle cx="${sunX.toFixed(0)}" cy="${sunY.toFixed(0)}" r="22" fill="${phase.id === 'dia' ? '#fff6d8' : '#ffd08a'}" opacity=".95"/>`;
   let deco = '';
   if (bioma === 'bosque') {
     for (let i = 0; i < 9; i += 1) {
@@ -218,13 +250,14 @@ function landscape(bioma) {
     }
   }
   return `<svg class="land" viewBox="0 0 400 240" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <defs><linearGradient id="sky-${bioma}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${b.cielo[0]}"/><stop offset="1" stop-color="${b.cielo[1]}"/></linearGradient>
+    <defs><linearGradient id="sky-${bioma}-${phase.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
     <linearGradient id="gr-${bioma}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${b.suelo[0]}"/><stop offset="1" stop-color="${b.suelo[1]}"/></linearGradient></defs>
-    <rect width="400" height="240" fill="url(#sky-${bioma})"/>
-    <circle cx="330" cy="48" r="22" fill="#fff6d8" opacity=".9"/>
+    <rect width="400" height="240" fill="url(#sky-${bioma}-${phase.id})"/>
+    ${celestial}
     <path d="M0,120 C70,86 130,100 200,96 S330,78 400,104 L400,240 L0,240 Z" fill="${b.lejos}" opacity=".7"/>
     <path d="M0,140 C90,120 160,136 240,128 S350,120 400,132 L400,240 L0,240 Z" fill="url(#gr-${bioma})"/>
     ${deco}
+    ${night ? '<rect width="400" height="240" fill="#141c3c" opacity=".38"/>' : phase.id === 'atardecer' ? '<rect width="400" height="240" fill="#ff8a3c" opacity=".1"/>' : ''}
   </svg>`;
 }
 
@@ -277,6 +310,8 @@ function drawWalkers(app) {
     const r = dio.getBoundingClientRect();
     heartBurst(dio, e.clientX - r.left - 10, e.clientY - r.top - 20);
     app.sfx.chirp();
+    const coach = dio.querySelector('.coach');
+    if (coach) coach.remove();
     app.openDino(b.dataset.walk);
   }));
   place(s);

@@ -8,6 +8,7 @@ import {
 import { dinoSVG } from '../../render/dino-svg.js';
 import { ACCESSORIES } from '../../data/cosmetics.js';
 import { equipAccessory } from '../../systems/rewards.js';
+import { openPostcard } from '../postcard.js';
 import {
   esc, bar, setBar, openSheet, closeSheet, sheetBody, setSheetTick, fmtTime, confirmSheet, heartBurst, toast,
 } from '../dom.js';
@@ -35,11 +36,12 @@ function draw(app, id, first = false) {
       ${dinoSVG(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}
       ${d.peticion ? `<span class="bubble">${REQ[d.peticion.tipo][0]} ${REQ[d.peticion.tipo][1]}</span>` : ''}
     </div>
-    <p class="small muted" style="margin-top:8px">${esc(sp.nombre)} · ${stageLabel(stage)} · <a href="#/dinopedia/${sp.id}">Ver en la Dinopedia</a></p>
+    <div class="portrait-meta"><p class="small muted">${esc(sp.nombre)} · ${stageLabel(stage)} · <a href="#/dinopedia/${sp.id}">Ver en la Dinopedia</a></p>
+      <button class="btn btn-ghost btn-sm" type="button" data-photo>📸 Postal</button></div>
     <div class="chips dino-tabs" role="tablist">
       ${[['cuidado', 'Cuidado'], ['genes', 'Genes'], ['info', 'Hogar']].map(([k, l]) => `<button class="chip" role="tab" type="button" aria-selected="${tab === k}" data-tab="${k}">${l}</button>`).join('')}
     </div>
-    <div id="dino-tab">${tab === 'cuidado' ? careTab(s, d, sp, stage, asleep) : tab === 'genes' ? genesTab(d, sp) : homeTab(s, d, sp)}</div>`;
+    <div id="dino-tab">${tab === 'cuidado' ? careTab(s, d, sp, stage, asleep) : tab === 'genes' ? genesTab(d, sp, app) : homeTab(s, d, sp)}</div>`;
   const body = first ? openSheet(title, html, { onClose: () => app.refresh() }) : sheetBody();
   if (!first) {
     body.innerHTML = html;
@@ -96,18 +98,31 @@ function need(label, icon, v, cls, key) {
   return `<div class="need"><label><span>${icon} ${label}</span><span data-num="${key}">${Math.round(v)}</span></label><div data-bar="${key}">${bar(v, cls)}</div></div>`;
 }
 
-function genesTab(d, sp) {
+function family(s, d) {
+  const name = (id) => { const x = s.dinos.find((y) => y.id === id); return x ? esc(x.nombre) : 'en un santuario'; };
+  const parents = d.padres ? `Hijo de ${name(d.padres[0])} y ${name(d.padres[1])}` : 'Nació de ADN fósil';
+  const kids = s.dinos.filter((x) => x.padres && x.padres.includes(d.id)).length;
+  return `${parents}${kids ? ` · ${kids} cría${kids > 1 ? 's' : ''}` : ''}`;
+}
+
+function genesTab(d, sp, app) {
   const stats = G.effectiveStats(d);
   const ph = phenotype(d.genes);
   const v = variantOf(d.genes.variante);
   return `
-    <div>${STAT_KEYS.map((k) => `<div class="stat-row"><span>${STAT_NAMES[k]}</span>${bar(Math.min(100, stats[k]), 'nolow')}<b>${stats[k]}</b></div>`).join('')}</div>
-    <p class="small muted" style="margin-top:6px">Valores actuales (según etapa y vínculo). Genéticos: ${STAT_KEYS.map((k) => `${STAT_NAMES[k].slice(0, 3)} ${d.genes.stats[k]}`).join(' · ')}</p>
+    <div>${STAT_KEYS.map((k) => {
+      const tr = (d.entreno && d.entreno[k]) || 0;
+      const can = G.stageOf(d) !== 'cria' && tr < G.TRAIN_MAX;
+      return `<div class="stat-row train-row"><span>${STAT_NAMES[k]}</span>${bar(Math.min(100, stats[k]), 'nolow')}<b>${stats[k]}</b>
+        <button class="btn btn-ghost btn-sm" type="button" data-train="${k}" ${can ? '' : 'disabled'} aria-label="Entrenar ${STAT_NAMES[k]} por ${G.trainPrice(d, k)} monedas">+${G.TRAIN_STEP} · ${G.trainPrice(d, k)}🪙</button></div>`;
+    }).join('')}</div>
+    <p class="small muted" style="margin-top:6px">Valores actuales (según etapa, vínculo y entrenamiento). Genéticos: ${STAT_KEYS.map((k) => `${STAT_NAMES[k].slice(0, 3)} ${d.genes.stats[k]}`).join(' · ')}. Entrenar usa ${G.TRAIN_ENERGY} de energía y <b>no se hereda</b>: solo los genes pasan a las crías.</p>
     <dl class="kv" style="margin-top:14px">
       <dt>Colores</dt><dd><span class="swatches"><i style="background:${ph.piel}"></i><i style="background:${ph.acento}"></i><i style="background:${ph.vientre}"></i></span></dd>
       <dt>Patrón</dt><dd>${PATTERN_NAMES[dominantPattern(d.genes.patron)]} <span class="genotype">${d.genes.patron.join(' / ')}</span></dd>
       <dt>Variante</dt><dd>${VARIANTS[v]} <span class="genotype">${d.genes.variante.join(' / ')}</span>${isCarrier(d.genes.variante) ? ' <span class="tag tag-amber">Portador</span>' : ''}</dd>
       <dt>Generación</dt><dd>${d.genes.generacion || 1}</dd>
+      <dt>Familia</dt><dd>${family(app.state, d)}</dd>
       <dt>Mutaciones</dt><dd>${d.genes.mutaciones || 0}</dd>
     </dl>
     ${v !== 'N' ? `<p class="small" style="margin-top:10px">🌟 ${esc(VARIANT_INFO[v])}</p>` : ''}
@@ -165,6 +180,9 @@ function wire(app, id, body) {
     }
     draw(app, id);
   };
+  const photo = body.querySelector('[data-photo]');
+  if (photo) photo.addEventListener('click', () => { app.sfx.tap(); openPostcard(app, id, () => openDinoSheet(app, id)); });
+  body.querySelectorAll('[data-train]').forEach((b) => b.addEventListener('click', () => act((s) => G.train(s, id, b.dataset.train), '💪', app.sfx.coin)));
   body.querySelectorAll('[data-acc]').forEach((b) => b.addEventListener('click', () => act((s) => equipAccessory(s, id, b.dataset.acc), b.dataset.acc ? ACCESSORIES[b.dataset.acc].icono : '✨')));
   body.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
     const a = b.dataset.act;

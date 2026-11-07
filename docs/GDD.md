@@ -188,6 +188,32 @@ amable. Esto sigue las recomendaciones de investigaciones sobre patrones
 oscuros en juegos infantiles (presión de tiempo, muros de pago y recompensas
 parecidas al azar con dinero real).
 
+## 3.12 Balance (probado con simulación)
+
+`scripts/simular-economia.mjs` juega sesiones diarias con un bot (cuida,
+excava con la energía disponible, sintetiza, incuba, reclama recompensas) e
+imprime una tabla por día. La primera versión revelaba que en 20 minutos se
+llegaba al nivel 9 y en 4 días se tenían las 41 especies: cada subida de nivel
+rellenaba la energía y eso permitía excavar más, y los visitantes pagaban
+demasiado. Tras el ajuste (curva de XP más larga, menos XP por acciones
+repetitivas, +1 de energía al subir de nivel, ADN por hueso moderado, taquilla
+con tope según el nivel y recintos que suben de precio), un jugador muy
+eficiente de 20 min/día llega al nivel 3 el primer día, ~9 a la semana y
+completa la colección en unas dos semanas; un jugador casual tarda varias más.
+Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
+
+## 3.13 Más profundidad
+
+- **Entrenamiento:** +2 a una estadística por monedas y energía del dinosaurio.
+  No cambia los genes, así que no se hereda (como en la biología real).
+- **Accesorios en la tienda** a precio fijo, además de los cofres.
+- **Postal para compartir:** imagen PNG del dinosaurio con su nombre, especie y
+  época, para descargar o compartir desde el celular.
+- **Hora real en el parque:** amanecer, día, atardecer y noche con luna,
+  estrellas y luciérnagas; nubes y libélulas de día.
+- **Instalable y sin conexión (PWA):** manifiesto, íconos y service worker.
+- **Familia:** la ficha muestra padres y número de crías.
+
 ## 4. Dirección visual
 
 - **Concepto:** estación de campo en un bosque de helechos. Nada de "papel

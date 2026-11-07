@@ -84,8 +84,9 @@ export function defaultRewards(now = Date.now()) {
   };
 }
 
+/** Tope de la taquilla: ~90 min de visitantes, limitado según el nivel del refugio. */
 export function boothCap(state) {
-  return Math.max(150, Math.round(parkStats(state).ingresoMin * 120));
+  return Math.round(Math.max(120, Math.min(parkStats(state).ingresoMin * 90, 250 + state.nivel * 150)));
 }
 
 export function log(state, texto, icono = '•') {
@@ -151,8 +152,9 @@ export function effectiveStats(dino) {
   const stage = stageOf(dino);
   const sf = stage === 'cria' ? 0.4 : stage === 'juvenil' ? 0.7 : 1;
   const bond = 1 + 0.2 * (dino.vinculo / 100);
+  const train = dino.entreno || {};
   const out = {};
-  for (const k of STAT_KEYS) out[k] = Math.round(dino.genes.stats[k] * sf * bond);
+  for (const k of STAT_KEYS) out[k] = Math.round(dino.genes.stats[k] * sf * bond + (train[k] || 0) * sf);
   return out;
 }
 
@@ -234,7 +236,7 @@ export function attractionOf(state, dino) {
 
 export function parkStats(state) {
   const atr = state.dinos.reduce((s, d) => s + attractionOf(state, d), 0);
-  return { atractivo: Math.round(atr), visitantes: Math.round(atr / 4), ingresoMin: Math.round(atr * 0.25) };
+  return { atractivo: Math.round(atr), visitantes: Math.round(atr / 4), ingresoMin: Math.round(atr * 0.1 * 10) / 10 };
 }
 
 // ------------------------------------------------------------------ paso del tiempo
@@ -450,7 +452,7 @@ export function feed(state, dinoId, foodId) {
   d.hambre = Math.min(100, d.hambre + food.saciedad * (fav ? 1.2 : 1));
   d.animo = Math.min(100, d.animo + (fav ? 8 : 3));
   state.contadores.alimentar += 1;
-  addXp(state, 2);
+  addXp(state, 1);
   d.combo = 0;
   const vin = fulfill(state, d, 'comida');
   if (fav && !vin) d.combo = bumpCombo(state);
@@ -465,7 +467,6 @@ export function pet(state, dinoId) {
   if (d.duermeHasta > state.tiempoJuego) return { ok: false, msg: `${d.nombre} está durmiendo. ¡Shhh!` };
   d.animo = Math.min(100, d.animo + 6);
   state.contadores.caricias += 1;
-  addXp(state, 1);
   d.combo = 0;
   const vin = fulfill(state, d, 'caricia');
   return { ok: true, vinculo: vin, combo: d.combo, msg: `${d.nombre} disfruta las caricias.` };
@@ -479,7 +480,7 @@ export function play(state, dinoId) {
   d.energia = Math.max(0, d.energia - 12);
   d.animo = Math.min(100, d.animo + 14);
   state.contadores.juegos += 1;
-  addXp(state, 2);
+  addXp(state, 1);
   d.combo = 0;
   const vin = fulfill(state, d, 'juego');
   return { ok: true, vinculo: vin, combo: d.combo, msg: `${d.nombre} juega feliz.` };
@@ -516,6 +517,38 @@ export function medicate(state, dinoId) {
   state.inventario.medicina -= 1;
   d.salud = Math.min(100, d.salud + 50);
   return { ok: true, msg: `${d.nombre} se siente mejor.` };
+}
+
+// ------------------------------------------------------------------ entrenamiento
+
+export const TRAIN_STEP = 2;
+export const TRAIN_MAX = 30; // puntos de entrenamiento por estadística
+export const TRAIN_ENERGY = 25;
+
+export function trainPrice(dino, stat) {
+  const done = (dino.entreno && dino.entreno[stat]) || 0;
+  return Math.round(60 + dino.genes.stats[stat] * 4 + done * 25);
+}
+
+/** Entrena una estadística. No cambia los genes: las crías no lo heredan. */
+export function train(state, dinoId, stat) {
+  const d = findDino(state, dinoId);
+  if (!STAT_KEYS.includes(stat)) return { ok: false, msg: 'Esa estadística no existe.' };
+  if (stageOf(d) === 'cria') return { ok: false, msg: 'Las crías todavía no entrenan: primero tienen que crecer.' };
+  if (d.enClinica) return { ok: false, msg: `${d.nombre} está en la clínica.` };
+  if (d.duermeHasta > state.tiempoJuego) return { ok: false, msg: `${d.nombre} está durmiendo.` };
+  d.entreno = d.entreno || {};
+  if ((d.entreno[stat] || 0) >= TRAIN_MAX) return { ok: false, msg: 'Ya llegó al máximo de entrenamiento en eso.' };
+  if (d.energia < TRAIN_ENERGY) return { ok: false, msg: `${d.nombre} necesita ${TRAIN_ENERGY} de energía para entrenar.` };
+  const price = trainPrice(d, stat);
+  if (state.monedas < price) return { ok: false, msg: `Entrenar cuesta ${price} monedas.` };
+  addMoney(state, -price);
+  d.energia -= TRAIN_ENERGY;
+  d.entreno[stat] = (d.entreno[stat] || 0) + TRAIN_STEP;
+  d.animo = Math.min(100, d.animo + 4);
+  state.contadores.entrenos = (state.contadores.entrenos || 0) + 1;
+  addXp(state, 3);
+  return { ok: true, msg: `${d.nombre} entrenó: +${TRAIN_STEP}. El entrenamiento no se hereda; solo los genes pasan a las crías.` };
 }
 
 export function rename(state, dinoId, nombre) {
@@ -707,9 +740,14 @@ export function buyMedicine(state) {
   return { ok: true, msg: 'Compraste medicina.' };
 }
 
+/** Cada recinto nuevo cuesta un poco más que el anterior. */
+export function enclosurePrice(state, bioma) {
+  return Math.round(ENCLOSURE_COST[bioma] * (1 + 0.5 * Math.max(0, state.recintos.length - 1)));
+}
+
 export function buildEnclosure(state, bioma) {
   if (state.nivel < ENCLOSURE_LEVEL[bioma]) return { ok: false, msg: `Disponible en el nivel ${ENCLOSURE_LEVEL[bioma]}.` };
-  const cost = ENCLOSURE_COST[bioma];
+  const cost = enclosurePrice(state, bioma);
   if (state.monedas < cost) return { ok: false, msg: `Construirlo cuesta ${cost} monedas.` };
   addMoney(state, -cost);
   const n = state.recintos.filter((r) => r.bioma === bioma).length + 1;

@@ -193,7 +193,7 @@ function applyRewards(app) {
     st.contadores.excavaciones += 1;
     st.contadores.huesos += done.hallazgos.filter((i) => done.items[i].tipo === 'hueso').length;
     if (!st.sitiosVisitados.includes(site.id)) st.sitiosVisitados.push(site.id);
-    addXp(st, 15 + lines.length * 5);
+    addXp(st, 10 + lines.length * 3);
     return null;
   }, { render: false, sound: false });
   dig = null;

@@ -109,7 +109,7 @@ export function dailySheet(app) {
 
 function streakHeader(s, st) {
   const d = s.recompensas.diaria;
-  return `<div class="streak-head"><span class="flame" aria-hidden="true">🔥</span><div><b>${d.racha} ${d.racha === 1 ? 'día' : 'días'} de racha</b><span class="small muted">Mejor racha: ${d.mejorRacha} · Escudos: ${'🛡️'.repeat(d.escudos) || 'ninguno'}</span></div></div>`;
+  return `<div class="streak-head"><span class="flame" aria-hidden="true">🔥</span><div><b>${d.racha ? `${d.racha} ${d.racha === 1 ? 'día' : 'días'} de racha` : '¡Empieza tu racha hoy!'}</b><span class="small muted">Mejor racha: ${d.mejorRacha} · Escudos: ${'🛡️'.repeat(d.escudos) || 'ninguno'}</span></div></div>`;
 }
 
 function calendarRow(st) {
@@ -129,7 +129,7 @@ export function levelUpSheet(app, level, info) {
       <p>Tu refugio es más famoso. ¡Más visitantes y nuevos lugares para explorar!</p>
       <div class="loot">
         <div class="loot-item"><span class="li">${R.CHESTS[info.tipo].icono}</span><span>${R.CHESTS[info.tipo].nombre}</span></div>
-        <div class="loot-item"><span class="li">⚡</span><span>Energía al máximo</span></div>
+        <div class="loot-item"><span class="li">⚡</span><span>+1 de energía</span></div>
         ${info.sitios.map((n) => `<div class="loot-item r-rara" style="--rc:${RARITY.rara.color}"><span class="li">🗺️</span><span>Nuevo yacimiento: ${esc(n)}</span></div>`).join('')}
       </div></div>
       <div class="sheet-actions"><button class="btn btn-amber" type="button" data-open>Abrir cofre</button><button class="btn btn-ghost" type="button" data-done>Después</button></div>`);

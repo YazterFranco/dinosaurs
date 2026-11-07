@@ -143,3 +143,31 @@ test('ninguna vista tiene desplazamiento horizontal', async ({ page }) => {
     expect(overflow, `scroll horizontal en ${r}`).toBeLessThanOrEqual(1);
   }
 });
+
+test('al desplazar el parque, la barra superior queda por encima del diorama', async ({ page }) => {
+  await startWith(page);
+  await page.mouse.wheel(0, 400);
+  await page.waitForTimeout(300);
+  const onTop = await page.evaluate(() => {
+    const hud = document.getElementById('hud').getBoundingClientRect();
+    const el = document.elementFromPoint(hud.left + hud.width / 2, hud.top + hud.height / 2);
+    return !!el.closest('#hud');
+  });
+  expect(onTop).toBe(true);
+});
+
+test('entrenar a un adulto sube su estadística sin cambiar sus genes', async ({ page }) => {
+  await startWith(page);
+  await page.evaluate(() => {
+    const s = window.__dinoApp.state;
+    s.dinos[0].edad = 1e6; s.dinos[0].energia = 100; s.monedas = 2000;
+    window.__dinoApp.refresh();
+  });
+  await page.locator('.dino-row').first().click();
+  await page.locator('dialog [data-tab="genes"]').click();
+  const gen = await page.evaluate(() => window.__dinoApp.state.dinos[0].genes.stats.fuerza);
+  await page.locator('[data-train="fuerza"]').click();
+  const after = await page.evaluate(() => window.__dinoApp.state.dinos[0]);
+  expect(after.genes.stats.fuerza).toBe(gen);
+  expect(after.entreno.fuerza).toBe(2);
+});

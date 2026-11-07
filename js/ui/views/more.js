@@ -5,6 +5,9 @@ import {
 import { MISSIONS, ACHIEVEMENTS, currentMission } from '../../systems/missions.js';
 import * as G from '../../systems/game.js';
 import * as R from '../../systems/rewards.js';
+import { ACCESSORIES, ACCESSORY_IDS } from '../../data/cosmetics.js';
+import { RARITY, SPECIES_BY_ID } from '../../data/species.js';
+import { dinoSVG } from '../../render/dino-svg.js';
 import { exportCode, importCode, clear } from '../../store.js';
 import { setSound } from '../../audio.js';
 import { esc, fmt, fmtTime, confirmSheet, toast } from '../dom.js';
@@ -62,7 +65,7 @@ let shopTab = 'comida';
 function shop(el, params, app) {
   const s = app.state;
   if (params[0]) shopTab = params[0];
-  const tabs = [['comida', '🍖 Comida'], ['recintos', '🏗️ Recintos'], ['enriquecimiento', '🪵 Enriquecimiento'], ['mejoras', '🔧 Mejoras']];
+  const tabs = [['comida', '🍖 Comida'], ['recintos', '🏗️ Recintos'], ['enriquecimiento', '🪵 Enriquecimiento'], ['mejoras', '🔧 Mejoras'], ['accesorios', '🎀 Accesorios']];
   let body = '';
   if (shopTab === 'comida') {
     body = `<div class="shop-grid">${Object.entries(FOODS).map(([id, f]) => `<div class="shop-item"><span class="si">${f.icono}</span><span class="grow"><b>${esc(f.nombre)}</b><span class="sub" style="display:block">Tienes ${s.inventario.comida[id] || 0} · ${esc(f.dato)}</span></span>
@@ -74,7 +77,7 @@ function shop(el, params, app) {
         const lvl = ENCLOSURE_LEVEL[id];
         const n = s.recintos.filter((r) => r.bioma === id).length;
         return `<div class="shop-item"><span class="si">${b.icono}</span><span class="grow"><b>${esc(b.nombre)}</b><span class="sub" style="display:block">${n ? `Tienes ${n}. ` : ''}${esc(b.dato)}</span></span>
-          ${s.nivel < lvl ? `<span class="tag">🔒 Nivel ${lvl}</span>` : `<button class="btn btn-sm" type="button" data-build="${id}">${ENCLOSURE_COST[id]}🪙</button>`}</div>`;
+          ${s.nivel < lvl ? `<span class="tag">🔒 Nivel ${lvl}</span>` : `<button class="btn btn-sm" type="button" data-build="${id}">${G.enclosurePrice(s, id)}🪙</button>`}</div>`;
       }).join('')}</div>`;
   } else if (shopTab === 'enriquecimiento') {
     body = `<p class="small muted" style="margin-bottom:10px">Los objetos dan ánimo a todos los habitantes del recinto (máximo ${MAX_ENRICHMENT} por recinto).</p>
@@ -83,6 +86,15 @@ function shop(el, params, app) {
           const has = r.enriquecimiento.includes(id);
           return `<div class="shop-item" style="background:#fff"><span class="si">${it.icono}</span><span class="grow"><b>${esc(it.nombre)}</b><span class="sub" style="display:block">+${it.bonus} de ánimo</span></span>${has ? '<span class="tag">Instalado</span>' : `<button class="btn btn-sm" type="button" data-enr="${id}" data-rec="${r.id}" ${r.enriquecimiento.length >= MAX_ENRICHMENT ? 'disabled' : ''}>${it.precio}🪙</button>`}</div>`;
         }).join('')}</div></div>`).join('')}`;
+  } else if (shopTab === 'accesorios') {
+    body = `<p class="small muted" style="margin-bottom:10px">Precio fijo: sabes exactamente qué compras. También salen en los cofres.</p>
+      <div class="acc-grid">${ACCESSORY_IDS.map((id) => {
+        const a = ACCESSORIES[id];
+        const has = s.recompensas.accesorios.includes(id);
+        const price = R.ACCESSORY_PRICE[a.rareza];
+        return `<div class="acc" style="--rc:${RARITY[a.rareza].color}">${dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', accesorio: id, mood: 'feliz', noShadow: true })}<b>${esc(a.nombre)}</b><span class="small" style="color:${RARITY[a.rareza].color}">${RARITY[a.rareza].nombre} · +${a.bonus} belleza</span>
+          ${has ? '<span class="tag">Tuyo</span>' : `<button class="btn btn-sm" type="button" data-acc="${id}" ${s.monedas >= price ? '' : 'disabled'}>${fmt(price)}🪙</button>`}</div>`;
+      }).join('')}</div>`;
   } else {
     body = `<div class="shop-grid">${Object.entries(UPGRADES).map(([id, u]) => {
       const lvl = s.mejoras[id];
@@ -94,11 +106,14 @@ function shop(el, params, app) {
   el.innerHTML = `${back()}<div class="view-head"><div><h1>Tienda</h1><p class="muted">Tienes ${fmt(s.monedas)} monedas.</p></div></div>
     <div class="chips" role="tablist">${tabs.map(([k, l]) => `<a class="chip" role="tab" href="#/tienda/${k}" aria-selected="${shopTab === k}">${l}</a>`).join('')}</div>
     <div style="margin-top:6px">${body}</div>`;
+  const active = el.querySelector('.chips .chip[aria-selected="true"]');
+  if (active) active.parentElement.scrollLeft = active.offsetLeft - 16;
   el.querySelectorAll('[data-food]').forEach((b) => b.addEventListener('click', () => app.do((st) => G.buyFood(st, b.dataset.food, +b.dataset.q), { sfx: app.sfx.coin })));
   el.querySelectorAll('[data-med]').forEach((b) => b.addEventListener('click', () => app.do((st) => G.buyMedicine(st), { sfx: app.sfx.coin })));
   el.querySelectorAll('[data-build]').forEach((b) => b.addEventListener('click', () => app.do((st) => G.buildEnclosure(st, b.dataset.build), { icon: '🏗️' })));
   el.querySelectorAll('[data-enr]').forEach((b) => b.addEventListener('click', () => app.do((st) => G.buyEnrichment(st, b.dataset.rec, b.dataset.enr), { icon: ENRICHMENT[b.dataset.enr].icono })));
   el.querySelectorAll('[data-up]').forEach((b) => b.addEventListener('click', () => app.do((st) => G.buyUpgrade(st, b.dataset.up), { icon: '🔧' })));
+  el.querySelectorAll('[data-acc]').forEach((b) => b.addEventListener('click', () => app.do((st) => R.buyAccessory(st, b.dataset.acc), { icon: ACCESSORIES[b.dataset.acc].icono, sfx: app.sfx.coin })));
 }
 
 function curios(el, app) {

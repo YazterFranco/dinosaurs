@@ -29,7 +29,10 @@ paso de compilación: HTML, CSS y JavaScript con módulos ES.
    que hay que cobrar, regalos que dejan tus dinosaurios felices, combos de
    cuidado, un bonus distinto cada día de la semana y un yacimiento con ADN
    doble cada semana. La energía de expedición (⚡) se recarga sola.
-8. Completa la **Dinopedia**: cada ficha trae significado del nombre,
+8. **Entrena** a tus adultos para los concursos (no se hereda: solo los genes
+   pasan a las crías), compra accesorios y saca una **postal** de tus
+   dinosaurios para compartirla.
+9. Completa la **Dinopedia**: cada ficha trae significado del nombre,
    pronunciación, periodo, tamaño comparado con una persona, quién lo descubrió,
    datos curiosos y "mito vs. realidad".
 
@@ -44,6 +47,11 @@ npm start            # http://localhost:5173
 Los módulos ES no funcionan abriendo `index.html` con doble clic (`file://`);
 usa el servidor incluido o GitHub Pages.
 
+## Instalar en el celular
+
+Al abrirlo desde GitHub Pages (https), el navegador ofrece **Agregar a la
+pantalla de inicio**. Queda como una app y funciona sin conexión.
+
 ## Publicar en GitHub Pages
 
 En el repositorio: **Settings → Pages → Deploy from a branch → `main` / root**.
@@ -56,6 +64,12 @@ npm test             # pruebas unitarias (node:test): genética, cuidado, cría,
 npm install          # instala @playwright/test
 npx playwright install chromium
 npm run test:e2e     # pruebas E2E en móvil (Pixel 7) y escritorio
+```
+
+Para revisar el ritmo del juego después de cambiar números:
+
+```bash
+node scripts/simular-economia.mjs 14 20   # 14 días, 20 minutos por día
 ```
 
 Las pruebas de datos verifican, por ejemplo, que cada especie aparece en un
@@ -74,6 +88,8 @@ js/render/dino-svg.js    Ilustración paramétrica de dinosaurios y huevos
 js/ui/views/             Pantallas: parque, criadero, excavar, dinopedia, más, quiz, concursos
 docs/GDD.md              Documento de diseño y referencias
 dev/gallery.html         Galería de todas las especies (útil al ajustar el dibujo)
+scripts/                 Servidor local, simulación de economía y generador de íconos
+sw.js, manifest.webmanifest  App instalable y modo sin conexión
 tests/                   Unitarias y E2E
 ```
 

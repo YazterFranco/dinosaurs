@@ -163,10 +163,36 @@ test('accesorios: solo se equipan los que tienes', () => {
   assert.equal(d.accesorio, 'corona');
 });
 
-test('subir de nivel da un cofre y llena la energía', () => {
+test('subir de nivel da un cofre y energía', () => {
   const s = game();
   R.spendEnergy(s, 3, T0);
   const info = R.levelUpRewards(s, 5, T0);
   assert.equal(info.tipo, 'oro');
-  assert.equal(R.energy(s, T0).valor, R.energyMax(s));
+  assert.equal(R.energy(s, T0).valor, 3);
+});
+
+test('entrenar sube la estadística sin tocar los genes y cuesta energía', () => {
+  const s = game();
+  const d = G.makeDino(s, 'protoceratops', wildGenes(SPECIES_BY_ID.protoceratops, 80, rng(9)), 'r1');
+  d.edad = 1e6;
+  d.energia = 100;
+  s.dinos.push(d);
+  s.monedas = 5000;
+  const gen = d.genes.stats.fuerza;
+  const before = G.effectiveStats(d).fuerza;
+  assert.equal(G.train(s, d.id, 'fuerza').ok, true);
+  assert.equal(d.genes.stats.fuerza, gen);
+  assert.ok(G.effectiveStats(d).fuerza > before);
+  assert.equal(d.energia, 100 - G.TRAIN_ENERGY);
+  d.energia = 0;
+  assert.equal(G.train(s, d.id, 'fuerza').ok, false);
+});
+
+test('la tienda vende accesorios a precio fijo', () => {
+  const s = game();
+  s.monedas = 500;
+  assert.equal(R.buyAccessory(s, 'corona').ok, false);
+  assert.equal(R.buyAccessory(s, 'mono').ok, true);
+  assert.equal(R.buyAccessory(s, 'mono').ok, false);
+  assert.equal(s.monedas, 100);
 });

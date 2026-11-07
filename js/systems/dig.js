@@ -13,7 +13,7 @@ export const PICK_COST = 2;
 export const BRUSH_COST = 1;
 const RARITY_WEIGHT = { comun: 5, pococomun: 4, rara: 3, epica: 2, legendaria: 1.4 };
 // Las especies raras aparecen menos, pero cada hueso aporta más ADN.
-const RARITY_DNA = { comun: 1.3, pococomun: 1.45, rara: 1.65, epica: 1.9, legendaria: 2.3 };
+const RARITY_DNA = { comun: 1, pococomun: 1.1, rara: 1.25, epica: 1.4, legendaria: 1.6 };
 
 function weightedPick(items, weightFn, rnd) {
   const total = items.reduce((s, x) => s + weightFn(x), 0);

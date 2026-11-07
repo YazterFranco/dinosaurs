@@ -56,3 +56,13 @@ export function dayBonus(now = Date.now()) {
 export function hasBonus(id, now = Date.now()) {
   return dayBonus(now).id === id;
 }
+
+// Momento del día según la hora local: cambia el cielo del parque.
+export function dayPhase(now = Date.now()) {
+  const d = new Date(now);
+  const h = d.getHours() + d.getMinutes() / 60;
+  if (h >= 6 && h < 8) return { id: 'amanecer', icono: '🌅', nombre: 'Amanecer', hora: h };
+  if (h >= 8 && h < 17.5) return { id: 'dia', icono: '☀️', nombre: 'Día', hora: h };
+  if (h >= 17.5 && h < 19.5) return { id: 'atardecer', icono: '🌇', nombre: 'Atardecer', hora: h };
+  return { id: 'noche', icono: '🌙', nombre: 'Noche', hora: h };
+}

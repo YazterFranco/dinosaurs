@@ -79,7 +79,6 @@ export function collectBooth(state) {
   state.recompensas.taquilla -= amount;
   addMoney(state, amount);
   state.contadores.cobros = (state.contadores.cobros || 0) + 1;
-  addXp(state, 2);
   return { ok: true, monedas: amount, msg: `Cobraste ${amount} monedas de la taquilla.` };
 }
 
@@ -332,7 +331,7 @@ export function openChest(state, chestId, rnd = Math.random, now = Date.now()) {
       items.push({ icono: '🪙', texto: `${m} monedas` });
     } else if (pick === 'comida') items.push(...giveFood(state, Math.round(3 * tierMult), rnd).slice(0, 2));
     else if (pick === 'adn') items.push(giveDna(state, Math.round((4 + rnd() * 5) * tierMult), rnd));
-    else if (pick === 'energia') { const n = chest.tipo === 'oro' ? 4 : 2; giveEnergy(state, n, now); items.push({ icono: '⚡', texto: `+${n} energía` }); }
+    else if (pick === 'energia') { const n = chest.tipo === 'oro' ? 3 : 1; giveEnergy(state, n, now); items.push({ icono: '⚡', texto: `+${n} energía` }); }
     else if (pick === 'medicina') { state.inventario.medicina += 1; items.push({ icono: '💊', texto: 'Medicina' }); }
     else if (pick === 'curio') {
       const c = CURIOS[Math.floor(rnd() * CURIOS.length)];
@@ -396,10 +395,23 @@ export function featuredSite(state, now = Date.now()) {
 export function levelUpRewards(state, level, now = Date.now()) {
   const tipo = level % 5 === 0 ? 'oro' : 'plata';
   addChest(state, tipo, `Nivel ${level}`);
-  const e = energy(state, now);
-  if (e.valor < e.max) { state.recompensas.energia.valor = e.max; state.recompensas.energia.ultimo = now; }
+  giveEnergy(state, 1, now);
   const sitios = SITES.filter((s) => s.nivel === level).map((s) => s.nombre);
   return { tipo, sitios };
+}
+
+export const ACCESSORY_PRICE = { comun: 400, rara: 1200, epica: 3000, legendaria: 9000 };
+
+/** Compra directa en la tienda: sin azar, sabes exactamente qué te llevas. */
+export function buyAccessory(state, accId) {
+  const a = ACCESSORIES[accId];
+  if (!a) return { ok: false, msg: 'Ese accesorio no existe.' };
+  if (state.recompensas.accesorios.includes(accId)) return { ok: false, msg: 'Ya lo tienes.' };
+  const price = ACCESSORY_PRICE[a.rareza];
+  if (state.monedas < price) return { ok: false, msg: `Cuesta ${price} monedas.` };
+  addMoney(state, -price);
+  state.recompensas.accesorios.push(accId);
+  return { ok: true, msg: `¡Compraste ${a.nombre.toLowerCase()}! Pónselo a un dinosaurio desde su ficha.` };
 }
 
 export function ownedAccessories(state) {

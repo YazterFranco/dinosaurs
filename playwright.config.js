@@ -10,6 +10,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5174',
     trace: 'retain-on-failure',
+    serviceWorkers: 'block',
     ...chrome,
   },
   projects: [
