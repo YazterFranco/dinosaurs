@@ -30,3 +30,12 @@ test('tiene manifiesto e ícono para instalar', async ({ page }) => {
   const m = await res.json();
   expect(m.name).toBe('Dino Refugio');
 });
+
+test('el botón "Instalar como app" explica cómo instalarla', async ({ page }) => {
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+  await page.goto('/index.html');
+  await page.locator('.starter-egg[data-id="oviraptor"]').click();
+  await page.goto('/index.html#/mas');
+  await page.locator('[data-install]').click();
+  await expect(page.locator('#sheet-title')).toHaveText('Instalar como app');
+});

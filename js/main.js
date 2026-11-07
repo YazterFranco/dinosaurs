@@ -19,6 +19,7 @@ import * as moreView from './ui/views/more.js';
 import * as quizView from './ui/views/quiz.js';
 import * as contestView from './ui/views/contest.js';
 import { openDinoSheet } from './ui/views/dino-sheet.js';
+import { setupInstall } from './ui/install.js';
 
 const ROUTES = {
   inicio: starterView,
@@ -159,6 +160,7 @@ function updateHud() {
 // ---------- Rutas ----------
 function route() {
   const raw = location.hash.replace(/^#\/?/, '');
+  if (raw === 'view') { viewEl.focus(); return; } // enlace "Saltar al contenido"
   let [name, ...params] = raw.split('/').filter(Boolean).map(decodeURIComponent);
   if (!state.iniciado) name = 'inicio';
   else if (!name || !ROUTES[name] || name === 'inicio') name = 'parque';
@@ -241,6 +243,7 @@ route();
 setInterval(loop, 1000);
 
 // Instalación como app y juego sin conexión.
+setupInstall();
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo sin conexión */ }));
 }

@@ -47,15 +47,25 @@ npm start            # http://localhost:5173
 Los módulos ES no funcionan abriendo `index.html` con doble clic (`file://`);
 usa el servidor incluido o GitHub Pages.
 
-## Instalar en el celular
+## Jugar en la web e instalar como app
 
-Al abrirlo desde GitHub Pages (https), el navegador ofrece **Agregar a la
-pantalla de inicio**. Queda como una app y funciona sin conexión.
+**1. Publicar la página (una sola vez).** En GitHub: *Settings → Pages →
+Build and deployment → Source: Deploy from a branch*. Elige la rama `main`
+(o `feature/dino-refugio` mientras el PR no esté mezclado), carpeta `/ (root)`,
+y pulsa *Save*. En uno o dos minutos el juego queda en:
 
-## Publicar en GitHub Pages
+https://yazterfranco.github.io/dinosaurs/
 
-En el repositorio: **Settings → Pages → Deploy from a branch → `main` / root**.
-El juego queda en `https://<usuario>.github.io/dinosaurs/`.
+**2. Instalar como app.** Abre esa dirección en el celular:
+
+- **Android (Chrome):** aparece *Instalar app*, o usa el menú ⋮ → *Instalar app*.
+- **iPhone (Safari):** botón *Compartir* → *Agregar a inicio*.
+- **Computadora (Chrome/Edge):** ícono de instalar en la barra de direcciones.
+
+También hay un botón **📲 Instalar como app** en *Más* y en *Ajustes*. La app
+instalada abre a pantalla completa y funciona sin internet. En iPhone la app
+y Safari guardan partidas separadas: usa el código de guardado de *Ajustes*
+para pasarla.
 
 ## Pruebas
 

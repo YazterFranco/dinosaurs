@@ -8,6 +8,7 @@ import * as R from '../../systems/rewards.js';
 import { ACCESSORIES, ACCESSORY_IDS } from '../../data/cosmetics.js';
 import { RARITY, SPECIES_BY_ID } from '../../data/species.js';
 import { dinoSVG } from '../../render/dino-svg.js';
+import { canOfferInstall, install } from '../install.js';
 import { exportCode, importCode, clear } from '../../store.js';
 import { setSound } from '../../audio.js';
 import { esc, fmt, fmtTime, confirmSheet, toast } from '../dom.js';
@@ -36,7 +37,10 @@ function hub(el, app) {
     ['ajustes', '⚙️', 'Ajustes', 'Sonido y partida guardada'],
   ];
   el.innerHTML = `<div class="view-head"><div><h1>Más</h1><p class="muted">Nivel ${s.nivel} · ${fmt(s.xp)} XP · ${s.dinos.length} dinosaurios</p></div></div>
-    <nav class="hub">${items.map(([r, i, t, sub, badge]) => `<a href="#/${r}"><span class="hi" aria-hidden="true">${i}</span><b>${t}</b><span>${esc(sub)}</span>${badge ? '<i class="badge">!</i>' : ''}</a>`).join('')}</nav>`;
+    <nav class="hub">${items.map(([r, i, t, sub, badge]) => `<a href="#/${r}"><span class="hi" aria-hidden="true">${i}</span><b>${t}</b><span>${esc(sub)}</span>${badge ? '<i class="badge">!</i>' : ''}</a>`).join('')}
+      ${canOfferInstall() ? '<a href="#/mas" data-install><span class="hi" aria-hidden="true">📲</span><b>Instalar como app</b><span>En tu pantalla de inicio y sin internet</span></a>' : ''}</nav>`;
+  const ib = el.querySelector('[data-install]');
+  if (ib) ib.addEventListener('click', (e) => { e.preventDefault(); install(); });
 }
 
 function back() {
@@ -143,6 +147,7 @@ function settings(el, app) {
   const s = app.state;
   el.innerHTML = `${back()}<div class="view-head"><div><h1>Ajustes</h1></div></div>
     <div class="panel">
+      ${canOfferInstall() ? '<button class="btn btn-amber btn-block" type="button" data-install style="margin-bottom:12px">📲 Instalar como app</button>' : '<p class="small" style="margin-bottom:12px">✅ Estás jugando en la app instalada.</p>'}
       <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700">Sonido
         <input type="checkbox" id="snd" ${s.ajustes.sonido ? 'checked' : ''} style="width:24px;height:24px"></label>
     </div>
@@ -165,6 +170,8 @@ function settings(el, app) {
       <h2>Sobre el juego</h2>
       <p class="small" style="margin-top:6px">Datos basados en literatura paleontológica y en la Dino Directory del Natural History Museum de Londres. Mecánicas inspiradas en Jurassic World Evolution, ARK, Prehistoric Kingdom y Tamagotchi. Más detalles en <code>docs/GDD.md</code>.</p>
     </div>`;
+  const inst = el.querySelector('[data-install]');
+  if (inst) inst.addEventListener('click', () => install());
   el.querySelector('#snd').addEventListener('change', (e) => {
     s.ajustes.sonido = e.target.checked;
     setSound(s.ajustes.sonido);

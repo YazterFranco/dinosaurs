@@ -63,13 +63,25 @@ export function openPostcard(app, dinoId, onBack) {
   const d = s.dinos.find((x) => x.id === dinoId);
   if (!d) return;
   const svg = cardSVG(s, d);
-  const body = openSheet('Postal', `<div class="postcard">${svg.replace('<svg ', '<svg class="postcard-svg" ')}</div>
+  const body = openSheet('Postal', `<div class="postcard" id="pc-box">${svg.replace('<svg ', '<svg class="postcard-svg" ')}</div>
+    <p class="small muted" style="text-align:center;margin-top:8px">También puedes mantener presionada la imagen para guardarla.</p>
     <div class="sheet-actions">
       <button class="btn btn-amber" type="button" data-share>Compartir</button>
       <button class="btn btn-ghost" type="button" data-save>Descargar</button>
       ${onBack ? '<button class="btn btn-ghost" type="button" data-back>Volver a la ficha</button>' : ''}
     </div>`);
   const file = `${d.nombre.replace(/[^\p{L}\p{N}]+/gu, '-')}-dino-refugio.png`;
+  // Convierte la vista previa en una imagen real: así se puede guardar con un toque largo.
+  toPng(svg).then((blob) => {
+    const box = body.querySelector('#pc-box');
+    if (!box) return;
+    const img = new Image();
+    img.className = 'postcard-svg';
+    img.alt = `Postal de ${d.nombre}`;
+    img.src = URL.createObjectURL(blob);
+    box.innerHTML = '';
+    box.appendChild(img);
+  }).catch(() => { /* se queda la vista en SVG */ });
   const download = async () => {
     try {
       const blob = await toPng(svg);

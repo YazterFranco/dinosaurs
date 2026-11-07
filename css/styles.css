@@ -676,6 +676,9 @@ a.chip { text-decoration: none; }
 .acc-q { display: grid; place-items: center; width: 100%; aspect-ratio: 3 / 2; font-family: var(--display); font-size: 2rem; color: var(--ink-soft); }
 .acc-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .dm.done { opacity: .6; }
+.url-box { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #fff; border: 1px solid var(--line); overflow-x: auto; }
+.url-box code { user-select: all; font-size: .9rem; }
+.steps { margin: 12px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
 .dm .mi-ico { font-size: 1.5rem; }
 .dm .bar { margin: 4px 0 2px; }
 
