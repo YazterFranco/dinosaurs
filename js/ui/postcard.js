@@ -3,20 +3,24 @@ import { SPECIES_BY_ID, PERIODS, periodLabel } from '../data/species.js';
 import { BIOMES } from '../data/world.js';
 import { stageOf, moodOf } from '../systems/game.js';
 import { dinoSVG } from '../render/dino-svg.js';
+import { dinoPngDataUrl } from '../render/art.js';
 import { esc, openSheet, closeSheet, toast } from './dom.js';
 
 const W = 600;
 const H = 760;
 
-function cardSVG(state, d) {
+function cardSVG(state, d, png) {
   const sp = SPECIES_BY_ID[d.especie];
   const rec = state.recintos.find((r) => r.id === d.recinto);
   const b = BIOMES[rec ? rec.bioma : sp.bioma];
   const stage = stageOf(d);
   const p = PERIODS[sp.periodo];
   const date = new Date().toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
-  const art = dinoSVG(sp, d.genes, { stage, mood: moodOf(d, state.tiempoJuego) || 'feliz', accesorio: d.accesorio })
-    .replace('<svg class="dino-svg"', '<svg x="40" y="150" width="520" height="347" class="dino-svg"');
+  // En 3D: imagen renderizada (data URL, para que funcione al convertir a PNG).
+  const art = png
+    ? `<image href="${png}" x="40" y="150" width="520" height="347" preserveAspectRatio="xMidYMid meet"/>`
+    : dinoSVG(sp, d.genes, { stage, mood: moodOf(d, state.tiempoJuego) || 'feliz', accesorio: d.accesorio })
+      .replace('<svg class="dino-svg"', '<svg x="40" y="150" width="520" height="347" class="dino-svg"');
   const font = "'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
     <defs>
@@ -62,7 +66,7 @@ export function openPostcard(app, dinoId, onBack) {
   const s = app.state;
   const d = s.dinos.find((x) => x.id === dinoId);
   if (!d) return;
-  const svg = cardSVG(s, d);
+  let svg = cardSVG(s, d);
   const body = openSheet('Postal', `<div class="postcard" id="pc-box">${svg.replace('<svg ', '<svg class="postcard-svg" ')}</div>
     <p class="small muted" style="text-align:center;margin-top:8px">También puedes mantener presionada la imagen para guardarla.</p>
     <div class="sheet-actions">
@@ -72,7 +76,7 @@ export function openPostcard(app, dinoId, onBack) {
     </div>`);
   const file = `${d.nombre.replace(/[^\p{L}\p{N}]+/gu, '-')}-dino-refugio.png`;
   // Convierte la vista previa en una imagen real: así se puede guardar con un toque largo.
-  toPng(svg).then((blob) => {
+  const preview = () => toPng(svg).then((blob) => {
     const box = body.querySelector('#pc-box');
     if (!box) return;
     const img = new Image();
@@ -82,6 +86,13 @@ export function openPostcard(app, dinoId, onBack) {
     box.innerHTML = '';
     box.appendChild(img);
   }).catch(() => { /* se queda la vista en SVG */ });
+  preview();
+  // Si hay 3D, la postal usa el dinosaurio renderizado en 3D.
+  dinoPngDataUrl(SPECIES_BY_ID[d.especie], d.genes, { stage: stageOf(d), mood: moodOf(d, s.tiempoJuego) || 'feliz', accesorio: d.accesorio, size: 'lg' }).then((png) => {
+    if (!png || !body.isConnected) return;
+    svg = cardSVG(s, d, png);
+    preview();
+  });
   const download = async () => {
     try {
       const blob = await toPng(svg);

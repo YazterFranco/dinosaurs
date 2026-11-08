@@ -4,7 +4,8 @@ import * as G from '../../systems/game.js';
 import {
   patternPunnett, variantPunnett, PATTERN_NAMES, VARIANTS, STAT_KEYS, STAT_NAMES,
 } from '../../systems/genetics.js';
-import { eggSVG, dinoSVG } from '../../render/dino-svg.js';
+import { eggSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import { esc, bar, setBar, fmtTime, openSheet, closeSheet } from '../dom.js';
 
 let pickA = '';
@@ -76,7 +77,7 @@ function genomeRow(s, sp) {
   const can = g >= 50;
   const r = RARITY[sp.rareza];
   return `<div class="row genome-row" style="cursor:default">
-    <span class="thumb">${dinoSVG(sp, null, { silhouette: !can, noShadow: true, detail: 'low' })}</span>
+    <span class="thumb">${dinoArt(sp, null, { silhouette: !can, noShadow: true, detail: 'low', size: 'sm' })}</span>
     <span class="grow">
       <span class="title">${esc(sp.nombre)}</span>
       <span class="sub"><span style="color:${r.color};font-weight:700">${r.nombre}</span> · ${g.toFixed(g % 1 ? 1 : 0)} % del genoma</span>
@@ -153,7 +154,7 @@ function hatchMoment(app, eggId) {
     const d = r.dino;
     const colors = ['#efa531', '#b9d46a', '#5ea8c0', '#c8473d', '#2e6a4e'];
     stage.innerHTML = `<div class="confetti">${Array.from({ length: 26 }).map((_, i) => `<i style="left:${Math.random() * 100}%;background:${colors[i % 5]};animation-delay:${Math.random() * 0.4}s"></i>`).join('')}</div>
-      <div class="reveal">${dinoSVG(sp, d.genes, { stage: 'cria', anim: true, mood: 'feliz' })}</div>`;
+      <div class="reveal">${dinoArt(sp, d.genes, { stage: 'cria', anim: true, mood: 'feliz', viewer: true })}</div>`;
     app.sfx.chirp();
     body.insertAdjacentHTML('beforeend', `<p style="text-align:center">${esc(r.msg)}</p>
       <label class="field-label" for="hatch-name">Ponle nombre</label>

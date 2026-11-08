@@ -169,7 +169,7 @@ function lineColor(genes, variante) {
 // `jaw`: línea de la boca; `nose`: narina; `top`: borde superior (accesorios).
 // `kind: 'theropod'` añade fenestra anteorbital y labios sobre los dientes.
 
-const HEADS = {
+export const HEADS = {
   boxy: { d: 'M-6,-6 C-3,-11 3,-12.5 9,-12 C12,-14 15,-12.5 16,-11 C22,-10 29,-7 34,-4 C36,-2.5 36,0.5 34.5,1.5 C30,3 22,4 14,4.5 C14,6.5 12,9 6,9.5 C1,9.6 -4,8 -6.5,5 C-8,2 -7.8,-3 -6,-6 Z', eye: [11, -7], jaw: 'M6,4.6 C14,4.4 24,3.2 33.5,1.2', nose: [31.5, -3.2], top: -13, len: 36, brow: true, kind: 'theropod' },
   short: { d: 'M-6,-7 C-3,-12 4,-13.5 11,-12 C17,-10.5 22,-6.5 24,-3 C25,0 24,3 21,4.2 C16,5 10,5.2 6,5.5 C4,8 0,9 -3,8.4 C-6,7 -7.5,3 -7.2,-1 C-7,-3.5 -6.8,-5.5 -6,-7 Z', eye: [10, -6.5], jaw: 'M3,5.4 C10,5 17,4.4 22.8,2.6', nose: [21, -3], top: -14, len: 25, brow: true, kind: 'theropod' },
   slim: { d: 'M-5,-5.5 C-2,-8.5 4,-9.2 9,-8.5 C14,-7.6 21,-5.4 27,-2.6 C29.5,-1.4 30,0.6 28.6,1.6 C24,3 15,3.8 8,4.2 C3,4.6 -2,4.4 -4.6,3 C-6.4,1.4 -6.6,-2.6 -5,-5.5 Z', eye: [8, -4.2], jaw: 'M4,3.6 C12,3.4 20,2.6 28.4,1.2', nose: [26.5, -1.8], top: -9.5, len: 30, brow: true, kind: 'theropod' },
@@ -626,7 +626,7 @@ export function dinoSVG(species, genes, opts = {}) {
       bboxAdd(bb, [[p[0], p[1] - L]]);
     }
   }
-  if ((feat.scutes || feat.ridge) && !sil) {
+  if ((feat.scutes || feat.ridge || feat.dorsalCrest) && !sil) {
     for (let i = 0; i < 12; i += 1) {
       const p = along(i / 11);
       bodyExtra.push(`<path d="M${f(p[0] - 2.4)},${f(p[1] + 1.2)} Q${f(p[0])},${f(p[1] - (feat.ridge ? 2.6 : 1.8))} ${f(p[0] + 2.4)},${f(p[1] + 1.2)} Z" fill="${shade}" stroke="${LN}" stroke-width=".55"/>`);

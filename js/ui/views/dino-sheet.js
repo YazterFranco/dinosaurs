@@ -5,7 +5,7 @@ import * as G from '../../systems/game.js';
 import {
   STAT_KEYS, STAT_NAMES, PATTERN_NAMES, VARIANTS, VARIANT_INFO, dominantPattern, variantOf, isCarrier, phenotype,
 } from '../../systems/genetics.js';
-import { dinoSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import { ACCESSORIES } from '../../data/cosmetics.js';
 import { equipAccessory } from '../../systems/rewards.js';
 import { openPostcard } from '../postcard.js';
@@ -33,7 +33,7 @@ function draw(app, id, first = false) {
   const title = `${esc(d.nombre)} <span class="muted small">${d.genes.sexo === 'M' ? '♂ macho' : '♀ hembra'}</span>`;
   const html = `
     <div class="portrait" id="dino-portrait">
-      ${dinoSVG(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}
+      ${dinoArt(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio, viewer: true, viewerKey: `ficha-${d.id}`, title: `${d.nombre}, ${sp.nombre}` })}
       ${d.peticion ? `<span class="bubble">${REQ[d.peticion.tipo][0]} ${REQ[d.peticion.tipo][1]}</span>` : ''}
     </div>
     <div class="portrait-meta"><p class="small muted">${esc(sp.nombre)} · ${stageLabel(stage)} · <a href="#/dinopedia/${sp.id}">Ver en la Dinopedia</a></p>

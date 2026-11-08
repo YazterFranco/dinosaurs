@@ -9,6 +9,11 @@ color real, reconstruido a partir de pigmentos fosilizados).
 Funciona en el navegador del móvil y de la computadora. No usa dependencias ni
 paso de compilación: HTML, CSS y JavaScript con módulos ES.
 
+Los dinosaurios son modelos 3D que el juego genera en el navegador (WebGL2,
+motor propio): escamas con relieve, plumas, membranas translúcidas, sombras y
+un visor que se gira con el dedo. Si el dispositivo no tiene WebGL2, o se apaga
+en Más → Ajustes, se usa el dibujo vectorial.
+
 ## Cómo jugar
 
 1. **Elige tu primer huevo** (herbívoro, omnívoro o carnívoro).
@@ -70,7 +75,7 @@ para pasarla.
 ## Pruebas
 
 ```bash
-npm test             # pruebas unitarias (node:test): genética, cuidado, cría, excavación, datos
+npm test             # pruebas unitarias (node:test): genética, cuidado, cría, excavación, datos, modelos 3D
 npm install          # instala @playwright/test
 npx playwright install chromium
 npm run test:e2e     # pruebas E2E en móvil (Pixel 7) y escritorio
@@ -94,10 +99,15 @@ js/main.js               Arranque, rutas, bucle de juego, HUD
 js/data/                 Dinopedia (species.js), mundo y tienda (world.js), quiz, accesorios
 js/systems/              Lógica pura y probada: game, genetics, dig, contest, missions,
                          rewards (energía, racha, cofres, regalos), calendar
-js/render/dino-svg.js    Ilustración paramétrica de dinosaurios y huevos
+js/render/dino-svg.js    Ilustración paramétrica de dinosaurios y huevos (respaldo instantáneo)
+js/render/art.js         Elige entre 3D y dibujo, y cambia uno por otro sin que se note
+js/render3d/             Motor 3D: modelos procedurales (model.js), geometría,
+                         texturas, sombreadores WebGL2 (gl.js), accesorios,
+                         imágenes en caché y visor giratorio (index.js)
 js/ui/views/             Pantallas: parque, criadero, excavar, dinopedia, más, quiz, concursos
 docs/GDD.md              Documento de diseño y referencias
 dev/gallery.html         Galería de todas las especies (útil al ajustar el dibujo)
+dev/gallery3d.html       Galería 3D (?only=, stage=, acc=, viewer=1, size=lg...)
 scripts/                 Servidor local, simulación de economía y generador de íconos
 sw.js, manifest.webmanifest  App instalable y modo sin conexión
 tests/                   Unitarias y E2E
@@ -117,6 +127,11 @@ tests/                   Unitarias y E2E
   (sombras frías, luz de contorno), proceso de paleoarte para videojuegos,
   *Jurassic World Evolution 2* y *Prehistoric Kingdom*. Detalles en
   `docs/GDD.md`, sección 4.
+- 3D: piel "carnosa" y membranas a contraluz como en *Jurassic World
+  Evolution 3*, dispersión subsuperficial (*GPU Gems*), plumas por capas,
+  curva de tono ACES y hallazgos de 2025 (pezuñas y cresta de las "momias" de
+  *Edmontosaurus*, moteado de crías de *Diplodocus*). Detalles en
+  `docs/GDD.md`, sección 4.1.
 
 Las medidas de los animales son estimaciones promedio de la literatura. Los
 colores son imaginados, como en cualquier reconstrucción paleontológica, salvo

@@ -61,7 +61,7 @@ export const SPECIES = [
     favoritos: ['carne_roja'],
     stats: { tamano: 85, fuerza: 95, velocidad: 45, vitalidad: 80, intelecto: 60 },
     look: {
-      plan: 'biped', body: [40, 24], neck: [12, 30, 20], head: { type: 'boxy', s: 1.35 },
+      plan: 'biped', body: [40, 24], neck: [12, 30, 20], head: { type: 'boxy', s: 1.35, back: 1.25 },
       tail: [62, 20], leg: [44, 14], arm: [9], colors: [28, 40], feat: { tinyArms: true },
     },
   },
@@ -191,8 +191,8 @@ export const SPECIES = [
     descubierto: { anio: 1878, por: 'Othniel Charles Marsh' },
     datos: [
       'Su nombre viene de unos huesos dobles en forma de viga bajo la cola.',
-      'Hay copias de "Dippy" en museos de todo el mundo, incluido el de La Plata.',
       'Algunos científicos creen que su cola podía restallar como un látigo.',
+      'Piel fosilizada de crías mostró pigmentos agrupados: probablemente tenían manchitas o moteado, no un gris uniforme.',
     ],
     mito: { mito: 'Mantenía el cuello siempre vertical.', realidad: 'Probablemente lo llevaba más horizontal, barriendo plantas bajas.' },
     bioma: 'llanura', biomas: ['llanura', 'bosque'],
@@ -202,7 +202,7 @@ export const SPECIES = [
     stats: { tamano: 90, fuerza: 70, velocidad: 25, vitalidad: 85, intelecto: 20 },
     look: {
       plan: 'quad', body: [36, 21], neck: [64, 22, 10], head: { type: 'small', s: 0.7 },
-      tail: [86, 11], leg: [30, 10], colors: [45, 20], feat: {},
+      tail: [86, 11], leg: [30, 10], colors: [45, 20], feat: { pattern: 'moteado' },
     },
   },
   {
@@ -891,8 +891,8 @@ export const SPECIES = [
     descubierto: { anio: 1917, por: 'Lawrence Lambe' },
     datos: [
       'Se conocen "momias" con impresiones de piel y escamas.',
-      'En 2013 se descubrió que tenía una cresta carnosa, como la de un gallo.',
       'Hay huesos suyos con marcas de mordidas de T. rex que sanaron: ¡escapó!',
+      'En 2025, dos "momias" de Wyoming revelaron una cresta carnosa en el cuello y el lomo, una fila de púas sobre la cola y pezuñas en las patas traseras.',
     ],
     mito: { mito: 'El "pico de pato" era blando como el de un pato.', realidad: 'Era un pico de queratina duro, bueno para cortar plantas.' },
     bioma: 'pantano', biomas: ['pantano', 'llanura'],
@@ -902,7 +902,7 @@ export const SPECIES = [
     stats: { tamano: 70, fuerza: 50, velocidad: 45, vitalidad: 75, intelecto: 35 },
     look: {
       plan: 'semi', body: [38, 21], neck: [18, 38, 13], head: { type: 'duck', s: 1 },
-      tail: [54, 13], leg: [38, 12], arm: [22], colors: [55, 75], feat: { crest: 'comb' },
+      tail: [54, 13], leg: [38, 12], arm: [22], colors: [55, 75], feat: { crest: 'comb', dorsalCrest: true, hooves: true },
     },
   },
   {

@@ -4,7 +4,8 @@ import {
 } from '../../data/species.js';
 import { SITES, FOODS, BIOMES } from '../../data/world.js';
 import { markRead } from '../../systems/game.js';
-import { dinoSVG, humanPath } from '../../render/dino-svg.js';
+import { humanPath } from '../../render/dino-svg.js';
+import { dinoArt, dinoArtSvg } from '../../render/art.js';
 import { esc, fmtKg, bar } from '../dom.js';
 
 let filter = 'todos';
@@ -57,7 +58,7 @@ function grid(s) {
     const g = s.genoma[sp.id] || 0;
     const known = g > 0;
     return `<a class="specimen${known ? '' : ' locked'}" href="#/dinopedia/${sp.id}" style="--pc:${PERIODS[sp.periodo].color}">
-      ${dinoSVG(sp, null, { silhouette: !known, noShadow: true, detail: 'low' })}
+      ${dinoArt(sp, null, { silhouette: !known, noShadow: true, detail: 'low' })}
       <span class="sname">${known ? esc(sp.nombre) : '???'}</span>
       <span class="smeta">${PERIODS[sp.periodo].nombre}${known ? ` · ${DIETS[sp.dieta].icono}` : ''}${sp.colorReal ? ' · 🎨' : ''}</span>
       ${known ? bar(g, 'leaf nolow') : ''}
@@ -74,7 +75,7 @@ function timeline(s) {
     return `<div class="tl-period" style="--pc:${p.color}"><h3>${p.nombre} <span class="small muted">${p.desde}–${p.hasta} Ma</span></h3></div>
       ${sps.map((sp) => {
         const known = (s.genoma[sp.id] || 0) > 0;
-        return `<a class="tl-item" style="--pc:${p.color}" href="#/dinopedia/${sp.id}"><span class="thumb">${dinoSVG(sp, null, { silhouette: !known, noShadow: true, detail: 'low' })}</span><span>${known ? esc(sp.nombre) : '???'}</span><span class="ma">${sp.ma[0]} Ma</span></a>`;
+        return `<a class="tl-item" style="--pc:${p.color}" href="#/dinopedia/${sp.id}"><span class="thumb">${dinoArt(sp, null, { silhouette: !known, noShadow: true, detail: 'low', size: 'sm' })}</span><span>${known ? esc(sp.nombre) : '???'}</span><span class="ma">${sp.ma[0]} Ma</span></a>`;
       }).join('')}
       ${pk === 'cretacico' ? '<p class="tl-gap">💡 El T. rex vivió más cerca de nosotros en el tiempo que del Stegosaurus.</p>' : ''}
       ${pk === 'jurasico' ? '<p class="tl-gap">💡 El Jurásico duró unos 56 millones de años; los humanos existimos desde hace solo 300.000.</p>' : ''}`;
@@ -99,7 +100,7 @@ function sizeCompare(sp) {
     ${(() => {
       const w = dinoW * 1.02;
       const h = (w * 160) / 240;
-      return dinoSVG(sp, null, { noShadow: true }).replace('<svg class="dino-svg"', `<svg x="${36 - w * 0.01}" y="${ground - h * 0.95}" width="${w}" height="${h}" class="dino-svg"`);
+      return dinoArtSvg(sp, null, { noShadow: true }, { x: 36 - w * 0.01, y: ground - h * 0.95, w, h });
     })()}
     <text x="${36 + dinoW / 2}" y="${ground + 11}" text-anchor="middle" font-size="10" font-weight="700" fill="#1f2a24" stroke="#fff" stroke-width="3" paint-order="stroke">${L.toLocaleString('es')} m de ${sp.medidaNota ? 'envergadura' : 'largo'}</text>
     <text x="18" y="${ground + 11}" text-anchor="middle" font-size="9" fill="#4a5a51">1,7 m</text>
@@ -115,7 +116,7 @@ function renderEntry(el, sp, app) {
   if (known && markRead(s, sp.id)) app.after();
   if (!known) {
     el.innerHTML = `<a href="#/dinopedia" class="small">← Volver a la Dinopedia</a>
-      <div class="entry-hero" style="margin-top:10px"><div class="portrait">${dinoSVG(sp, null, { silhouette: true })}</div>
+      <div class="entry-hero" style="margin-top:10px"><div class="portrait">${dinoArt(sp, null, { silhouette: true })}</div>
       <div><h1>Especie sin descubrir</h1><p class="muted" style="margin-top:6px">Vivió en el ${esc(periodLabel(sp))}. Encuentra un fósil suyo para leer su ficha.</p>
       <p style="margin-top:12px"><b>Dónde excavar:</b> ${sites.map((x) => esc(`${x.nombre} (${x.lugar})`)).join(', ')}</p>
       <a class="btn" href="#/excavar" style="margin-top:14px">Ir a excavar</a></div></div>`;
@@ -124,7 +125,7 @@ function renderEntry(el, sp, app) {
   const d = DIETS[sp.dieta];
   el.innerHTML = `<a href="#/dinopedia" class="small">← Volver a la Dinopedia</a>
     <div class="entry-hero" style="margin-top:10px">
-      <div class="portrait">${dinoSVG(sp, null, { anim: true })}</div>
+      <div class="portrait">${dinoArt(sp, null, { anim: true, viewer: true, viewerKey: `pedia-${sp.id}` })}</div>
       <div class="entry-title">
         <h1 class="sci">${esc(sp.nombre)}</h1>
         <p><b>"${esc(sp.significado)}"</b> · se pronuncia <i>${esc(sp.pronunciacion)}</i></p>

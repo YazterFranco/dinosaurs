@@ -5,7 +5,7 @@ import * as R from '../../systems/rewards.js';
 import { dayBonus, msToMidnight, msToWeekEnd } from '../../systems/calendar.js';
 import { ACCESSORIES, ACCESSORY_IDS } from '../../data/cosmetics.js';
 import { RARITY, SPECIES_BY_ID } from '../../data/species.js';
-import { dinoSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import {
   esc, bar, openSheet, closeSheet,
 } from '../dom.js';
@@ -228,7 +228,7 @@ export function render(el, params, app) {
 }
 
 function accPreview(id) {
-  return dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', accesorio: id, mood: 'feliz', noShadow: true, detail: 'low' });
+  return dinoArt(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', accesorio: id, mood: 'feliz', noShadow: true, detail: 'low' });
 }
 
 export function tick(app) {

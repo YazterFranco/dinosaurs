@@ -8,7 +8,7 @@ import * as R from '../../systems/rewards.js';
 import { dayBonus, msToMidnight, dayPhase } from '../../systems/calendar.js';
 import { fmtLong, dailySheet, openChestSheet } from './rewards.js';
 import { currentMission } from '../../systems/missions.js';
-import { dinoSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import { esc, bar, setBar, heartBurst, toast } from '../dom.js';
 
 const SIZE_W = { pequeno: 0.27, mediano: 0.33, grande: 0.41, gigante: 0.5 };
@@ -179,7 +179,7 @@ function dinoRow(s, d) {
   const asleep = d.duermeHasta > s.tiempoJuego;
   const alert = d.peticion || d.hambre < 25 || d.salud < 40 || d.enClinica;
   return `<button class="row dino-row" type="button" data-dino="${d.id}" data-row="${d.id}">
-    <span class="thumb">${dinoSVG(sp, d.genes, { stage, sleeping: asleep, noShadow: true, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio, detail: 'low' })}</span>
+    <span class="thumb">${dinoArt(sp, d.genes, { stage, sleeping: asleep, noShadow: true, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio, detail: 'low', size: 'sm' })}</span>
     <span class="grow">
       <span class="title">${esc(d.nombre)} ${d.genes.sexo === 'M' ? '♂' : '♀'}</span>
       <span class="sub">${esc(sp.corto || sp.nombre)} · ${stage === 'cria' ? 'Cría' : stage === 'juvenil' ? 'Juvenil' : 'Adulto'}${d.enClinica ? ' · <b class="tag tag-warn">En clínica</b>' : ''}${asleep ? ' · 💤' : ''}</span>
@@ -300,7 +300,7 @@ function drawWalkers(app) {
     const stage = stageOf(d);
     const { w } = walkerBox(d, sp, W, H);
     return `<button class="walker${stage === 'cria' && !asleep ? ' hop' : ''}" type="button" data-walk="${d.id}" style="width:${w.toFixed(0)}px" aria-label="${esc(d.nombre)}, ${esc(sp.nombre)}">
-      <span class="flip">${dinoSVG(sp, d.genes, { stage, anim: asleep ? false : 'lite', sleeping: asleep, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}</span>
+      <span class="flip">${dinoArt(sp, d.genes, { stage, anim: asleep ? false : 'lite', sleeping: asleep, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}</span>
       ${d.peticion ? `<span class="bubble" aria-label="Pide ${d.peticion.tipo}">${REQ_ICON[d.peticion.tipo]}</span>`
         : EMOTE[moodOf(d, s.tiempoJuego)] ? `<span class="bubble thought" aria-hidden="true">${EMOTE[moodOf(d, s.tiempoJuego)]}</span>` : ''}
       <span class="nametag">${esc(d.nombre)}</span>

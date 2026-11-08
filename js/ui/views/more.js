@@ -7,7 +7,7 @@ import * as G from '../../systems/game.js';
 import * as R from '../../systems/rewards.js';
 import { ACCESSORIES, ACCESSORY_IDS } from '../../data/cosmetics.js';
 import { RARITY, SPECIES_BY_ID } from '../../data/species.js';
-import { dinoSVG } from '../../render/dino-svg.js';
+import { dinoArt, is3DOn, set3D, start3D, status3D } from '../../render/art.js';
 import { canOfferInstall, install } from '../install.js';
 import { exportCode, importCode, clear } from '../../store.js';
 import { setSound } from '../../audio.js';
@@ -34,7 +34,7 @@ function hub(el, app) {
     ['quiz', '🎓', 'Quiz', 'Gana monedas y ADN aprendiendo'],
     ['hallazgos', '🐚', 'Hallazgos', `${nCurios} objetos en tu vitrina`],
     ['diario', '📓', 'Diario del refugio', 'Lo que pasó últimamente'],
-    ['ajustes', '⚙️', 'Ajustes', 'Sonido y partida guardada'],
+    ['ajustes', '⚙️', 'Ajustes', 'Sonido, 3D y partida guardada'],
   ];
   el.innerHTML = `<div class="view-head"><div><h1>Más</h1><p class="muted">Nivel ${s.nivel} · ${fmt(s.xp)} XP · ${s.dinos.length} dinosaurios</p></div></div>
     <nav class="hub">${items.map(([r, i, t, sub, badge]) => `<a href="#/${r}"><span class="hi" aria-hidden="true">${i}</span><b>${t}</b><span>${esc(sub)}</span>${badge ? '<i class="badge">!</i>' : ''}</a>`).join('')}
@@ -96,7 +96,7 @@ function shop(el, params, app) {
         const a = ACCESSORIES[id];
         const has = s.recompensas.accesorios.includes(id);
         const price = R.ACCESSORY_PRICE[a.rareza];
-        return `<div class="acc" style="--rc:${RARITY[a.rareza].color}">${dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', detail: 'low', accesorio: id, mood: 'feliz', noShadow: true })}<b>${esc(a.nombre)}</b><span class="small" style="color:${RARITY[a.rareza].color}">${RARITY[a.rareza].nombre} · +${a.bonus} belleza</span>
+        return `<div class="acc" style="--rc:${RARITY[a.rareza].color}">${dinoArt(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', detail: 'low', accesorio: id, mood: 'feliz', noShadow: true })}<b>${esc(a.nombre)}</b><span class="small" style="color:${RARITY[a.rareza].color}">${RARITY[a.rareza].nombre} · +${a.bonus} belleza</span>
           ${has ? '<span class="tag">Tuyo</span>' : `<button class="btn btn-sm" type="button" data-acc="${id}" ${s.monedas >= price ? '' : 'disabled'}>${fmt(price)}🪙</button>`}</div>`;
       }).join('')}</div>`;
   } else {
@@ -145,11 +145,17 @@ function diary(el, app) {
 
 function settings(el, app) {
   const s = app.state;
+  const d3 = status3D();
   el.innerHTML = `${back()}<div class="view-head"><div><h1>Ajustes</h1></div></div>
     <div class="panel">
       ${canOfferInstall() ? '<button class="btn btn-amber btn-block" type="button" data-install style="margin-bottom:12px">📲 Instalar como app</button>' : '<p class="small" style="margin-bottom:12px">✅ Estás jugando en la app instalada.</p>'}
       <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700">Sonido
         <input type="checkbox" id="snd" ${s.ajustes.sonido ? 'checked' : ''} style="width:24px;height:24px"></label>
+      <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700;margin-top:12px">Dinosaurios en 3D
+        <input type="checkbox" id="d3" ${d3 === 'on' || (d3 === 'pendiente' && is3DOn()) ? 'checked' : ''} ${d3 === 'sin' ? 'disabled' : ''} style="width:24px;height:24px"></label>
+      <p class="small muted" style="margin-top:4px">${d3 === 'sin' ? 'Tu navegador no tiene WebGL2, así que se usa el dibujo plano.'
+    : d3 === 'lento' ? 'Tu navegador dibuja sin tarjeta gráfica, así que usamos el dibujo plano. Puedes activar el 3D igual, pero irá más lento.'
+      : 'Modelos 3D con luz y sombras. Si tu teléfono va lento, desactívalo para usar el dibujo plano.'}</p>
     </div>
     <div class="panel">
       <h2>Partida guardada</h2>
@@ -172,6 +178,11 @@ function settings(el, app) {
     </div>`;
   const inst = el.querySelector('[data-install]');
   if (inst) inst.addEventListener('click', () => install());
+  el.querySelector('#d3').addEventListener('change', (e) => {
+    set3D(e.target.checked);
+    toast(e.target.checked ? 'Dinosaurios en 3D activados.' : 'Usando el dibujo plano.', 'good', '🦖');
+    setTimeout(() => location.reload(), 600);
+  });
   el.querySelector('#snd').addEventListener('change', (e) => {
     s.ajustes.sonido = e.target.checked;
     setSound(s.ajustes.sonido);

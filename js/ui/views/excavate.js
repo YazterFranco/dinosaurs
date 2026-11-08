@@ -8,7 +8,7 @@ import { addDna, addMoney, addXp } from '../../systems/game.js';
 import { energy, spendEnergy, featuredSite } from '../../systems/rewards.js';
 import { hasBonus } from '../../systems/calendar.js';
 import { fmtLong } from './rewards.js';
-import { dinoSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import { esc, bar, setBar, openSheet, closeSheet, toast } from '../dom.js';
 
 let dig = null;
@@ -73,7 +73,7 @@ function siteCard(s, site, first, en, featured) {
     <div class="species">${site.especies.map((id) => {
       const sp = SPECIES_BY_ID[id];
       const known = (s.genoma[id] || 0) > 0;
-      return `<span title="${known ? esc(sp.nombre) : 'Especie sin descubrir'}">${dinoSVG(sp, null, { silhouette: !known, noShadow: true, detail: 'low' })}</span>`;
+      return `<span title="${known ? esc(sp.nombre) : 'Especie sin descubrir'}">${dinoArt(sp, null, { silhouette: !known, noShadow: true, detail: 'low', size: 'sm' })}</span>`;
     }).join('')}</div>
     <p class="fact">${esc(site.dato)}</p>
   </article>`;
@@ -207,7 +207,7 @@ function finish(app) {
   const body = openSheet('Resultados de la excavación', `
     ${lines.length ? `<div class="list">${lines.map((l) => {
       const sp = SPECIES_BY_ID[l.id];
-      return `<div class="row" style="cursor:default"><span class="thumb">${dinoSVG(sp, null, { noShadow: true, detail: 'low' })}</span><span class="grow"><span class="title">${esc(sp.nombre)}${newSpecies.includes(l.id) ? ' <span class="tag tag-amber">¡Nueva!</span>' : ''}</span><span class="sub">+${l.p.toFixed(1)} % de ADN → ${l.res.despues.toFixed(1)} %</span>${bar(l.res.despues, `${l.res.despues >= 50 ? 'leaf' : 'amber'} nolow`)}</span></div>`;
+      return `<div class="row" style="cursor:default"><span class="thumb">${dinoArt(sp, null, { noShadow: true, detail: 'low', size: 'sm' })}</span><span class="grow"><span class="title">${esc(sp.nombre)}${newSpecies.includes(l.id) ? ' <span class="tag tag-amber">¡Nueva!</span>' : ''}</span><span class="sub">+${l.p.toFixed(1)} % de ADN → ${l.res.despues.toFixed(1)} %</span>${bar(l.res.despues, `${l.res.despues >= 50 ? 'leaf' : 'amber'} nolow`)}</span></div>`;
     }).join('')}</div>` : '<p>Esta vez no recuperaste fósiles completos. Los huesos a medio excavar solo aportan un poco de ADN.</p>'}
     ${curios.length ? `<h3 style="margin-top:14px">Hallazgos</h3><ul class="funfacts" style="margin-top:8px">${curios.map((c) => { const k = CURIOS.find((x) => x.id === c); return `<li>${k.icono} <b>${esc(k.nombre)}</b>: ${esc(k.dato)}</li>`; }).join('')}</ul>` : ''}
     <p class="small muted" style="margin-top:12px">${total > 0 ? 'Con 50 % de genoma puedes sintetizar un huevo en el Criadero.' : 'Consejo: usa el pico en roca profunda y la brocha cuando aparezca el brillo ✦ de un fósil.'}</p>

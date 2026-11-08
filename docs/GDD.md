@@ -229,8 +229,10 @@ Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
   Jurásico `#4f8a5b`, Cretácico `#3f6f8f`.
 - **Elemento protagonista:** el diorama del recinto, con paisaje por bioma y
   dinosaurios que pasean, duermen y piden cosas. Todo lo demás es sobrio.
-- **Dinosaurios:** ilustración vectorial paramétrica por plan corporal (bípedo,
-  cuadrúpedo, semibípedo, volador, nadador), en estilo paleoarte:
+- **Dinosaurios:** modelos 3D generados en el navegador (sección 4.1). Debajo
+  queda una ilustración vectorial paramétrica por plan corporal (bípedo,
+  cuadrúpedo, semibípedo, volador, nadador), en estilo paleoarte, que aparece
+  al instante y sirve de respaldo:
   - **Anatomía:** la cola, el cuerpo y el cuello siguen una "columna" que se
     ensancha y se afina como un esqueleto, con un solo contorno. Patas con
     muslo musculoso, espinilla, metatarso y dedos con garras de queratina;
@@ -260,6 +262,62 @@ Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
   Hyperlegible* para el texto (diseñada para lectura fácil).
 - **Movimiento:** respiración, cabeceo (a ritmo distinto en cada animal),
   parpadeo y aleteo. Todo se desactiva con `prefers-reduced-motion`.
+
+### 4.1 Dinosaurios en 3D
+
+Cada dinosaurio es un modelo tridimensional que se genera al vuelo con los
+datos de su especie y sus genes. No hay archivos de modelos ni librerías: el
+juego sigue sin dependencias ni paso de compilación, con un motor WebGL2 propio
+en `js/render3d/`.
+
+- **Modelado procedural:** el tronco, la cola y el cuello se levantan desde el
+  perfil lateral del dibujo (secciones verticales unidas con un máximo suave y
+  ancho de superelipse), así el 3D y el dibujo coinciden siempre. La cabeza
+  sale del mismo contorno con el ancho propio de su tipo (pico de pato, hocico
+  de terópodo, pico de loro...). Las patas son tubos cuyo muslo nace dentro del
+  cuerpo. Golas, velas, placas, cuernos, crestas, armadura, alas con membrana y
+  plumas se modelan por especie; las crías tienen cabeza y ojos más grandes.
+- **Materiales:**
+  - Escamas con relieve: mapa de alturas procedural tipo Voronoi, a la escala
+    real del animal, con *bump mapping* sin tangentes (Mikkelsen, 2010).
+  - Piel "carnosa": dispersión subsuperficial aproximada con luz envolvente
+    (*GPU Gems*, cap. 16), como la que *Jurassic World Evolution 3* añadió a
+    sus dinosaurios.
+  - Membranas que dejan pasar el sol (alas de pterosaurio, velas, golas), como
+    en *JWE3*.
+  - Plumas y picnofibras por capas (*shell texturing*, Lengyel et al., 2001):
+    diez capas de hebras peinadas hacia atrás.
+  - Ojos con iris, brillo húmedo y párpados que parpadean; brillo iridiscente
+    en *Microraptor*.
+- **Luz de estudio:** luz principal cálida, luz de contorno fría (heredera del
+  sombreado de *Team Fortress 2*), cielo y suelo, sombras con mapa de sombras y
+  filtrado PCF, sombra de contacto y curva de tono ACES (la del cine), para que
+  los colores no se quemen. La textura que rodea el cuerpo usa el método de
+  Tarini (2012) para que no aparezca una costura.
+- **Cómo se muestra:**
+  - En el parque, las listas y las tarjetas cada animal es una imagen 3D que se
+    renderiza una sola vez, en ratos libres, y se guarda en memoria y en
+    IndexedDB (con límite y borrado de versiones viejas). Al volver a abrir el
+    juego aparecen al instante, y el parque va a 60 cuadros por segundo aunque
+    haya muchos animales.
+  - En la ficha, la eclosión, la Dinopedia y la bienvenida hay un visor que se
+    gira con el dedo, el ratón o las flechas del teclado. El animal respira,
+    mira alrededor y parpadea.
+  - Calidad adaptable: si los cuadros tardan, el visor baja la resolución y
+    después deja de animarse en reposo. Sin tarjeta gráfica (WebGL por
+    software) arranca quieto. Con `prefers-reduced-motion` no se mueve.
+  - Si el navegador no tiene WebGL2, o el jugador lo apaga en Más → Ajustes,
+    se ve el dibujo vectorial, que también aparece mientras se prepara el 3D.
+- **Anatomía al día (2025):**
+  - *Edmontosaurus*: las "momias" de Wyoming (Sereno et al., *Science*, 2025)
+    mostraron una cresta carnosa continua en el cuello y el lomo que, pasada la
+    cadera, se vuelve una fila de púas (una por vértebra), y pezuñas en forma
+    de cuña en las patas traseras. El modelo tiene las tres cosas.
+  - *Diplodocus*: melanosomas fosilizados en la piel de crías (Gallagher et
+    al., *Royal Society Open Science*, 2025) revelaron un moteado como el de
+    los cocodrilos. Su patrón base ahora es moteado, con manchitas redondas.
+- **Herramienta:** `dev/gallery3d.html` muestra las 41 especies en 3D, con
+  parámetros para etapa, ánimo, accesorio, silueta, sueño y visor.
 
 ## 5. Referencias
 
@@ -296,3 +354,21 @@ Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
 - Natural History Museum (Londres), *Dino Directory* y la reconstrucción de
   Psittacosaurus a partir de sus melanosomas.
 - *Alba: A Wildlife Adventure* (ustwo games), dirección de arte.
+
+**3D**
+
+- Sereno et al. (2025), *Science*: "Duck-billed dinosaur fleshy midline and
+  hooves reveal terrestrial clay-template 'mummification'" (*Edmontosaurus*).
+- Gallagher et al. (2025), *Royal Society Open Science*: "Fossilized
+  melanosomes reveal colour patterning of a sauropod dinosaur" (*Diplodocus*).
+- Frontier, *Jurassic World Evolution 3*, "Behind the scenes: bringing
+  dinosaurs to life": dispersión subsuperficial y transmisión, membranas
+  translúcidas, crías que no son adultos encogidos.
+- Simon Green (2004), *GPU Gems*, cap. 16: "Real-Time Approximations to
+  Subsurface Scattering".
+- Lengyel, Praun, Finkelstein y Hoppe (2001): "Real-Time Fur over Arbitrary
+  Surfaces" (capas para pelo y plumas).
+- Morten Mikkelsen (2010): "Bump Mapping Unparametrized Surfaces on the GPU".
+- Marco Tarini (2012): "Cylindrical and Toroidal Parameterizations Without
+  Vertex Seams".
+- Krzysztof Narkowicz (2016): "ACES Filmic Tone Mapping Curve".

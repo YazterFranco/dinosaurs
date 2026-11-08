@@ -683,6 +683,21 @@ a.chip { text-decoration: none; }
 .dm .bar { margin: 4px 0 2px; }
 
 /* SVG del dinosaurio: animaciones */
+/* Dinosaurios en 3D: imágenes renderizadas y visor que se gira */
+.dino-art { display: contents; }
+.dino-viewer { display: block; width: 100%; }
+.portrait .dino-viewer { width: min(100%, 360px); }
+.starter-hero-wrap { display: block; width: min(100%, 520px); margin: 6px auto 0; }
+img.dino-img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.thumb img.dino-img, .site .species img.dino-img { height: 100%; object-fit: contain; }
+.portrait img.dino-img { width: min(100%, 320px); max-height: 213px; object-fit: contain; }
+.lane .runner img.dino-img { width: 64px; }
+.dino-3d-canvas { display: block; max-width: 100%; margin: 0 auto; cursor: grab; touch-action: pan-y; border-radius: 12px; }
+.dino-3d-canvas:active { cursor: grabbing; }
+.dino-viewer.is-3d { position: relative; }
+.dino-3d-hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgb(22 44 33 / 0.66); color: #fff; font-size: 0.8rem; font-weight: 600; white-space: nowrap; pointer-events: none; animation: hint-fade 5s ease forwards; }
+@keyframes hint-fade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+.dino-3d-canvas:focus-visible { outline: 3px solid var(--fern, #2e6a4e); outline-offset: 2px; }
 .dino-svg .breathe { animation: breathe 3.2s ease-in-out infinite; transform-box: view-box; }
 .dino-svg.is-anim { animation: breathe-svg 3.2s ease-in-out infinite; transform-origin: 50% 95%; will-change: transform; }
 .dino-svg.is-float { animation: hover-svg 2.4s ease-in-out infinite; will-change: transform; }

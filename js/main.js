@@ -20,6 +20,7 @@ import * as quizView from './ui/views/quiz.js';
 import * as contestView from './ui/views/contest.js';
 import { openDinoSheet } from './ui/views/dino-sheet.js';
 import { setupInstall } from './ui/install.js';
+import { start3D } from './render/art.js';
 
 const ROUTES = {
   inicio: starterView,
@@ -244,6 +245,8 @@ setInterval(loop, 1000);
 
 // Instalación como app y juego sin conexión.
 setupInstall();
+// Dinosaurios en 3D (con el dibujo plano como respaldo).
+start3D();
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo sin conexión */ }));
 }

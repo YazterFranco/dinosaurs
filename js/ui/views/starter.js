@@ -1,7 +1,8 @@
 // Pantalla de bienvenida: elegir el primer huevo.
 import { SPECIES_BY_ID, DIETS, SPECIES } from '../../data/species.js';
 import { STARTERS, chooseStarter } from '../../systems/game.js';
-import { eggSVG, dinoSVG } from '../../render/dino-svg.js';
+import { eggSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import { esc } from '../dom.js';
 
 const BLURB = {
@@ -14,7 +15,7 @@ export function render(el, params, app) {
   const hero = SPECIES_BY_ID.parasaurolophus;
   el.innerHTML = `<section class="starter">
     <h1>Dino Refugio</h1>
-    ${dinoSVG(hero, null, { anim: true, stage: 'adulto', title: 'Un Parasaurolophus te da la bienvenida' }).replace('class="dino-svg', 'class="starter-hero dino-svg')}
+    ${dinoArt(hero, null, { anim: true, stage: 'adulto', title: 'Un Parasaurolophus te da la bienvenida', className: 'starter-hero', viewer: true, maxWidth: 520 })}
     <p class="lead">Bienvenido a tu estación de campo. Aquí excavarás fósiles reales, recuperarás su ADN y criarás a ${SPECIES.length} especies prehistóricas mientras aprendes cómo vivieron. Para empezar, elige tu primer huevo.</p>
     <div class="starter-eggs">
       ${STARTERS.map((id) => {

@@ -2,7 +2,7 @@
 import { SPECIES_BY_ID } from '../../data/species.js';
 import { CONTESTS, canEnter, contestScore, runContest } from '../../systems/contest.js';
 import { stageOf } from '../../systems/game.js';
-import { dinoSVG } from '../../render/dino-svg.js';
+import { dinoArt } from '../../render/art.js';
 import { esc, toast } from '../dom.js';
 
 let tipo = 'carrera';
@@ -21,7 +21,7 @@ export function render(el, params, app) {
       ${list.length ? `<div class="list" style="margin-top:10px">${list.map((d) => {
         const sp = SPECIES_BY_ID[d.especie];
         const chk = canEnter(s, d, tipo);
-        return `<div class="row" style="cursor:default"><span class="thumb">${dinoSVG(sp, d.genes, { stage: stageOf(d), noShadow: true, detail: 'low' })}</span>
+        return `<div class="row" style="cursor:default"><span class="thumb">${dinoArt(sp, d.genes, { stage: stageOf(d), noShadow: true, detail: 'low', size: 'sm' })}</span>
           <span class="grow"><span class="title">${esc(d.nombre)}</span><span class="sub">${esc(sp.corto || sp.nombre)} · puntuación base ${Math.round(contestScore(s, d, tipo))}${chk.ok ? '' : ` · ${esc(chk.msg)}`}</span></span>
           <button class="btn btn-sm" type="button" data-enter="${d.id}" ${chk.ok ? '' : 'disabled'}>Inscribir</button></div>`;
       }).join('')}</div>` : '<div class="empty"><p>Solo pueden competir juveniles y adultos.</p><a class="btn" href="#/parque">Cuidar a mis crías</a></div>'}
@@ -56,7 +56,7 @@ function resultHtml(r) {
     race = `<div class="race" aria-hidden="true">${lanes.map((x) => {
       const sp = SPECIES_BY_ID[x.especie];
       const to = `calc(${(x.puntos / max) * 100}% - ${(x.puntos / max) * 64}px)`;
-      return `<div class="lane${x.tuyo ? ' mine' : ''}"><span class="runner" style="left:${r.animar ? '0' : to}" data-to="${to}">${dinoSVG(sp, null, { stage: 'adulto', anim: true, noShadow: true })}</span><span class="who">${esc(x.nombre)}</span></div>`;
+      return `<div class="lane${x.tuyo ? ' mine' : ''}"><span class="runner" style="left:${r.animar ? '0' : to}" data-to="${to}">${dinoArt(sp, null, { stage: 'adulto', anim: true, noShadow: true, size: 'sm' })}</span><span class="who">${esc(x.nombre)}</span></div>`;
     }).join('')}</div>`;
   }
   return `<section class="section"><h2>Resultado</h2>${race}
