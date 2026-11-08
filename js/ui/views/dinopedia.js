@@ -57,7 +57,7 @@ function grid(s) {
     const g = s.genoma[sp.id] || 0;
     const known = g > 0;
     return `<a class="specimen${known ? '' : ' locked'}" href="#/dinopedia/${sp.id}" style="--pc:${PERIODS[sp.periodo].color}">
-      ${dinoSVG(sp, null, { silhouette: !known, noShadow: true })}
+      ${dinoSVG(sp, null, { silhouette: !known, noShadow: true, detail: 'low' })}
       <span class="sname">${known ? esc(sp.nombre) : '???'}</span>
       <span class="smeta">${PERIODS[sp.periodo].nombre}${known ? ` · ${DIETS[sp.dieta].icono}` : ''}${sp.colorReal ? ' · 🎨' : ''}</span>
       ${known ? bar(g, 'leaf nolow') : ''}
@@ -74,7 +74,7 @@ function timeline(s) {
     return `<div class="tl-period" style="--pc:${p.color}"><h3>${p.nombre} <span class="small muted">${p.desde}–${p.hasta} Ma</span></h3></div>
       ${sps.map((sp) => {
         const known = (s.genoma[sp.id] || 0) > 0;
-        return `<a class="tl-item" style="--pc:${p.color}" href="#/dinopedia/${sp.id}"><span class="thumb">${dinoSVG(sp, null, { silhouette: !known, noShadow: true })}</span><span>${known ? esc(sp.nombre) : '???'}</span><span class="ma">${sp.ma[0]} Ma</span></a>`;
+        return `<a class="tl-item" style="--pc:${p.color}" href="#/dinopedia/${sp.id}"><span class="thumb">${dinoSVG(sp, null, { silhouette: !known, noShadow: true, detail: 'low' })}</span><span>${known ? esc(sp.nombre) : '???'}</span><span class="ma">${sp.ma[0]} Ma</span></a>`;
       }).join('')}
       ${pk === 'cretacico' ? '<p class="tl-gap">💡 El T. rex vivió más cerca de nosotros en el tiempo que del Stegosaurus.</p>' : ''}
       ${pk === 'jurasico' ? '<p class="tl-gap">💡 El Jurásico duró unos 56 millones de años; los humanos existimos desde hace solo 300.000.</p>' : ''}`;

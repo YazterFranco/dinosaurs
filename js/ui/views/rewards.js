@@ -228,7 +228,7 @@ export function render(el, params, app) {
 }
 
 function accPreview(id) {
-  return dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', accesorio: id, mood: 'feliz', noShadow: true });
+  return dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', accesorio: id, mood: 'feliz', noShadow: true, detail: 'low' });
 }
 
 export function tick(app) {

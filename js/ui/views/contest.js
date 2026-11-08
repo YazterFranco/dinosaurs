@@ -21,7 +21,7 @@ export function render(el, params, app) {
       ${list.length ? `<div class="list" style="margin-top:10px">${list.map((d) => {
         const sp = SPECIES_BY_ID[d.especie];
         const chk = canEnter(s, d, tipo);
-        return `<div class="row" style="cursor:default"><span class="thumb">${dinoSVG(sp, d.genes, { stage: stageOf(d), noShadow: true })}</span>
+        return `<div class="row" style="cursor:default"><span class="thumb">${dinoSVG(sp, d.genes, { stage: stageOf(d), noShadow: true, detail: 'low' })}</span>
           <span class="grow"><span class="title">${esc(d.nombre)}</span><span class="sub">${esc(sp.corto || sp.nombre)} · puntuación base ${Math.round(contestScore(s, d, tipo))}${chk.ok ? '' : ` · ${esc(chk.msg)}`}</span></span>
           <button class="btn btn-sm" type="button" data-enter="${d.id}" ${chk.ok ? '' : 'disabled'}>Inscribir</button></div>`;
       }).join('')}</div>` : '<div class="empty"><p>Solo pueden competir juveniles y adultos.</p><a class="btn" href="#/parque">Cuidar a mis crías</a></div>'}

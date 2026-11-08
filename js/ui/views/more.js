@@ -96,7 +96,7 @@ function shop(el, params, app) {
         const a = ACCESSORIES[id];
         const has = s.recompensas.accesorios.includes(id);
         const price = R.ACCESSORY_PRICE[a.rareza];
-        return `<div class="acc" style="--rc:${RARITY[a.rareza].color}">${dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', accesorio: id, mood: 'feliz', noShadow: true })}<b>${esc(a.nombre)}</b><span class="small" style="color:${RARITY[a.rareza].color}">${RARITY[a.rareza].nombre} · +${a.bonus} belleza</span>
+        return `<div class="acc" style="--rc:${RARITY[a.rareza].color}">${dinoSVG(SPECIES_BY_ID.psittacosaurus, null, { stage: 'cria', detail: 'low', accesorio: id, mood: 'feliz', noShadow: true })}<b>${esc(a.nombre)}</b><span class="small" style="color:${RARITY[a.rareza].color}">${RARITY[a.rareza].nombre} · +${a.bonus} belleza</span>
           ${has ? '<span class="tag">Tuyo</span>' : `<button class="btn btn-sm" type="button" data-acc="${id}" ${s.monedas >= price ? '' : 'disabled'}>${fmt(price)}🪙</button>`}</div>`;
       }).join('')}</div>`;
   } else {

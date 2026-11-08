@@ -113,6 +113,10 @@ tests/                   Unitarias y E2E
 - Diseño: *Alba: A Wildlife Adventure* y las fichas de la *Dino Directory* del
   Natural History Museum de Londres. Paleoarte actualizado (labios en terópodos,
   plumas, color real conocido).
+- Dibujo de los dinosaurios: sombreado ilustrativo de *Team Fortress 2*
+  (sombras frías, luz de contorno), proceso de paleoarte para videojuegos,
+  *Jurassic World Evolution 2* y *Prehistoric Kingdom*. Detalles en
+  `docs/GDD.md`, sección 4.
 
 Las medidas de los animales son estimaciones promedio de la literatura. Los
 colores son imaginados, como en cualquier reconstrucción paleontológica, salvo

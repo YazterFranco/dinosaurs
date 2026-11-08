@@ -684,8 +684,10 @@ a.chip { text-decoration: none; }
 
 /* SVG del dinosaurio: animaciones */
 .dino-svg .breathe { animation: breathe 3.2s ease-in-out infinite; transform-box: view-box; }
+.dino-svg.is-anim { animation: breathe-svg 3.2s ease-in-out infinite; transform-origin: 50% 95%; will-change: transform; }
+.dino-svg.is-float { animation: hover-svg 2.4s ease-in-out infinite; will-change: transform; }
 .dino-svg .tail-sway { animation: sway 3.6s ease-in-out infinite; transform-box: view-box; }
-.dino-svg .head-bob { animation: bob 4.2s ease-in-out infinite; transform-box: view-box; }
+.dino-svg .head-bob { animation: bob 7s ease-in-out infinite; transform-box: view-box; }
 .dino-svg .blink { animation: blink 5s infinite; transform-box: view-box; }
 .dino-svg .flap { animation: flap .9s ease-in-out infinite; transform-box: view-box; }
 .dino-svg .flap-far { animation-delay: -.05s; }
@@ -693,8 +695,10 @@ a.chip { text-decoration: none; }
 .dino-svg .zzz { font-family: var(--display); animation: zzz 2s ease-in-out infinite; }
 
 @keyframes breathe { 50% { transform: scale(1.015, 1.035); } }
+@keyframes breathe-svg { 50% { transform: scale(1.01, 1.025); } }
+@keyframes hover-svg { 50% { transform: translateY(-5px); } }
 @keyframes sway { 50% { transform: rotate(-4deg); } }
-@keyframes bob { 50% { transform: rotate(3deg); } }
+@keyframes bob { 0%, 55%, 100% { transform: rotate(0); } 72% { transform: rotate(4deg); } 86% { transform: rotate(-1deg); } }
 @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
 @keyframes flap { 50% { transform: rotate(-26deg); } }
 @keyframes hover { 50% { transform: translateY(-6px); } }

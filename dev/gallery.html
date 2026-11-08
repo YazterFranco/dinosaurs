@@ -10,5 +10,7 @@ const q = new URLSearchParams(location.search);
 const wild = q.get('wild');
 const mood = q.get('mood') || '';
 const accs = ['', 'sombrero', 'corona', 'gafas', 'mono', 'gorro_fiesta', 'casco_minero', 'flor', 'bufanda', 'corona_ambar'];
-document.getElementById('g').innerHTML = SPECIES.map(s => `<div class="c">${dinoSVG(s, wild ? wildGenes(s, 80) : null, {stage, mood, accesorio: q.get('acc') ? accs[SPECIES.indexOf(s) % accs.length] : ''})}${s.nombre}</div>`).join('');
+const only = q.get('only') ? q.get('only').split(',') : null;
+if (q.get('cols')) document.getElementById('g').style.gridTemplateColumns = `repeat(${q.get('cols')},1fr)`;
+document.getElementById('g').innerHTML = SPECIES.filter(s => !only || only.includes(s.id)).map(s => `<div class="c">${dinoSVG(s, wild ? wildGenes(s, 80) : null, {stage, mood, accesorio: q.get('acc') ? accs[SPECIES.indexOf(s) % accs.length] : ''})}${s.nombre}</div>`).join('');
 </script>

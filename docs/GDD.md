@@ -230,14 +230,36 @@ Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
 - **Elemento protagonista:** el diorama del recinto, con paisaje por bioma y
   dinosaurios que pasean, duermen y piden cosas. Todo lo demás es sobrio.
 - **Dinosaurios:** ilustración vectorial paramétrica por plan corporal (bípedo,
-  cuadrúpedo, semibípedo, volador, nadador). Velas, placas, golas, cuernos,
-  crestas, armadura y plumas se dibujan por especie; colores y patrones salen
-  de los genes. Las crías tienen cabeza y ojos más grandes. Sin pasto, cactus
-  ni palmeras en los paisajes: no existían (o casi) en la época.
+  cuadrúpedo, semibípedo, volador, nadador), en estilo paleoarte:
+  - **Anatomía:** la cola, el cuerpo y el cuello siguen una "columna" que se
+    ensancha y se afina como un esqueleto, con un solo contorno. Patas con
+    muslo musculoso, espinilla, metatarso y dedos con garras de queratina;
+    pies columnares con uñas en los cuadrúpedos. Placas de Stegosaurus en dos
+    filas alternas, osteodermos en bandas, volante con epoccipitales, alas de
+    pterosaurio con propatagio y actinofibrillas, plumas pennáceas en brazos y
+    cola de los maniraptores, sin dientes a la vista (labios).
+  - **Luz (como en el arte de videojuegos):** rampa de luz inspirada en el
+    sombreado ilustrativo de *Team Fortress 2* (Valve): las sombras se enfrían
+    en vez de ennegrecerse, la transición entre luz y sombra gana saturación
+    cálida, luz de contorno en los bordes que miran arriba y luz rebotada del
+    suelo en el vientre. Contrasombreado (lomo oscuro, vientre claro).
+  - **Materiales:** escamas finas o plumas como textura, membranas (velas,
+    placas, golas, alas) translúcidas con brillo cálido a contraluz, ojos con
+    anillo, iris con volumen y brillo húmedo (el foco de la mirada).
+  - **Oclusión ambiental:** sombra de contacto bajo cada pie y sombra de la
+    cabeza sobre el cuello.
+  - **Nivel de detalle (LOD):** las miniaturas omiten la textura fina; en el
+    parque, con muchos animales a la vez, solo respiran y parpadean; el retrato
+    grande también mueve la cabeza. La respiración anima el SVG entero en la
+    GPU, sin repintar.
+  - Velas, placas, golas, cuernos, crestas, armadura y plumas se dibujan por
+    especie; colores y patrones salen de los genes. Las crías tienen cabeza y
+    ojos más grandes. Sin pasto, cactus ni palmeras en los paisajes: no
+    existían (o casi) en la época.
 - **Tipografía:** *Lilita One* para títulos (rótulo de juego) y *Atkinson
   Hyperlegible* para el texto (diseñada para lectura fácil).
-- **Movimiento:** respiración, cola, parpadeo y aleteo. Todo se desactiva con
-  `prefers-reduced-motion`.
+- **Movimiento:** respiración, cabeceo (a ritmo distinto en cada animal),
+  parpadeo y aleteo. Todo se desactiva con `prefers-reduced-motion`.
 
 ## 5. Referencias
 
@@ -263,5 +285,14 @@ Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
   antifaz y cola anillada), Psittacosaurus (contrasombreado) y Borealopelta
   (marrón rojizo contrasombreado).
 
-- Natural History Museum (Londres), *Dino Directory*.
+- Jason L. Mitchell y otros (Valve, 2007), *Illustrative Rendering in Team
+  Fortress 2*: sombras frías, saturación en la transición, luz de contorno.
+- Michael Kelley, *Paleoart Process for Video Games* (Game Developer):
+  contrasombreado, labios, decisiones justificadas por evidencia.
+- *Jurassic World Evolution 2* (Frontier): variantes de color inspiradas en
+  animales actuales (aves rapaces para los dromeosáuridos).
+- *Prehistoric Kingdom* (Blue Meridian): diseños que buscan exactitud
+  científica y variación individual de tono y saturación.
+- Natural History Museum (Londres), *Dino Directory* y la reconstrucción de
+  Psittacosaurus a partir de sus melanosomas.
 - *Alba: A Wildlife Adventure* (ustwo games), dirección de arte.

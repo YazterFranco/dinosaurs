@@ -76,7 +76,7 @@ function genomeRow(s, sp) {
   const can = g >= 50;
   const r = RARITY[sp.rareza];
   return `<div class="row genome-row" style="cursor:default">
-    <span class="thumb">${dinoSVG(sp, null, { silhouette: !can, noShadow: true })}</span>
+    <span class="thumb">${dinoSVG(sp, null, { silhouette: !can, noShadow: true, detail: 'low' })}</span>
     <span class="grow">
       <span class="title">${esc(sp.nombre)}</span>
       <span class="sub"><span style="color:${r.color};font-weight:700">${r.nombre}</span> · ${g.toFixed(g % 1 ? 1 : 0)} % del genoma</span>
