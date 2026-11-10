@@ -300,7 +300,7 @@ function drawWalkers(app) {
     const stage = stageOf(d);
     const { w } = walkerBox(d, sp, W, H);
     return `<button class="walker${stage === 'cria' && !asleep ? ' hop' : ''}" type="button" data-walk="${d.id}" style="width:${w.toFixed(0)}px" aria-label="${esc(d.nombre)}, ${esc(sp.nombre)}">
-      <span class="flip">${dinoArt(sp, d.genes, { stage, anim: asleep ? false : 'lite', sleeping: asleep, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}</span>
+      <span class="flip">${dinoArt(sp, d.genes, { stage, anim: asleep ? false : 'lite', walk: !asleep, sleeping: asleep, mood: moodOf(d, s.tiempoJuego), accesorio: d.accesorio })}</span>
       ${d.peticion ? `<span class="bubble" aria-label="Pide ${d.peticion.tipo}">${REQ_ICON[d.peticion.tipo]}</span>`
         : EMOTE[moodOf(d, s.tiempoJuego)] ? `<span class="bubble thought" aria-hidden="true">${EMOTE[moodOf(d, s.tiempoJuego)]}</span>` : ''}
       <span class="nametag">${esc(d.nombre)}</span>
@@ -332,6 +332,7 @@ function place(s) {
     el.style.transform = `translate(${left.toFixed(1)}px, ${top.toFixed(1)}px)`;
     el.style.zIndex = String(Math.round(p.y * 100));
     el.classList.toggle('left', p.dir < 0);
+    el.classList.toggle('resting', p.pause > 0);
   });
 }
 

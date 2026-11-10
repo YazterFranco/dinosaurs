@@ -247,6 +247,8 @@ setInterval(loop, 1000);
 setupInstall();
 // Dinosaurios en 3D (con el dibujo plano como respaldo).
 start3D();
+// El visor 3D avisa cuando el dinosaurio ruge: aquí se le pone la voz.
+document.addEventListener('dino-roar', (e) => { sfx.voice(e.detail.species.longitudM, e.detail.stage === 'cria'); });
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo sin conexión */ }));
 }

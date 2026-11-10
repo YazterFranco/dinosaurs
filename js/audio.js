@@ -67,6 +67,22 @@ export const sfx = {
     tone(big ? 110 : 330, 0.6, 'sawtooth', 0.12, 0, big ? 60 : 180);
     noise(0.5, 0.18, big ? 400 : 1500);
   },
+  /** Voz según el tamaño: grave y larga en los gigantes, aguda en los pequeños. */
+  voice: (meters = 4, baby = false) => {
+    const m = baby ? Math.min(1.2, meters * 0.25) : meters;
+    if (m < 2.5) {
+      const f = 1500 - m * 260;
+      tone(f, 0.09, 'sine', 0.09, 0, f * 1.45); tone(f * 1.1, 0.08, 'sine', 0.09, 0.11, f * 1.6); tone(f * 0.95, 0.12, 'triangle', 0.07, 0.22, f * 1.3);
+      return;
+    }
+    const f = Math.max(46, 190 - m * 9);
+    const dur = Math.min(1.3, 0.55 + m * 0.045);
+    vibrate([30, 20, 60]);
+    tone(f, dur, 'sawtooth', 0.11, 0, f * 0.55);
+    tone(f * 1.5, dur * 0.8, 'square', 0.035, 0.03, f * 0.8);
+    tone(f * 0.5, dur, 'sine', 0.12, 0, f * 0.3);
+    noise(dur * 0.9, 0.2, 320 + 1400 / m);
+  },
   chirp: () => { tone(1500, 0.06, 'sine', 0.08, 0, 2200); tone(1700, 0.06, 'sine', 0.08, 0.08, 2400); },
   level: () => (vibrate([20, 30, 20, 30, 40]), [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.12, i * 0.1))),
   chest: () => { vibrate([30, 30, 60]); noise(0.25, 0.2, 600); [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.05, 0.2 + i * 0.06)); },

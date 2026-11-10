@@ -26,7 +26,12 @@ function checkModel(m, label) {
   assert.ok(finite([...b.min, ...b.max]), `${label}: caja inválida`);
   const size = b.max.map((v, i) => v - b.min[i]);
   assert.ok(size[0] > 20 && size[1] > 10 && size[2] > 4, `${label}: el modelo está aplastado (${size.map((v) => v.toFixed(0))})`);
-  for (const k of Object.keys(m.anim)) assert.ok(finite(m.anim[k]), `${label}: animación ${k} inválida`);
+  for (const k of Object.keys(m.anim)) {
+    if (k === 'legs') continue;
+    assert.ok(finite([].concat(m.anim[k])), `${label}: animación ${k} inválida`);
+  }
+  for (const l of m.anim.legs) assert.ok(finite([...l.hip, ...l.knee, ...l.ankle, l.phase, l.bend]), `${label}: pata sin articulaciones válidas`);
+  for (const p of m.parts) if (p.mesh.rig) assert.equal(p.mesh.rig.length / 4, p.mesh.pos.length / 3, `${label}: ${p.mat} con datos de animación incompletos`);
 }
 
 test('el modelo 3D de cada especie es geometría válida en todas las etapas, ánimos y accesorios', () => {

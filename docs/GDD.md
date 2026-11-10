@@ -289,6 +289,25 @@ en `js/render3d/`.
     diez capas de hebras peinadas hacia atrás.
   - Ojos con iris, brillo húmedo y párpados que parpadean; brillo iridiscente
     en *Microraptor*.
+- **Segunda pasada (más realismo y vida):**
+  - Piel en capas: escamas finas (más pequeñas en los gigantes), escamas
+    grandes sueltas y una red de arrugas de piel curtida; encima, el relieve
+    anatómico de cada animal (pliegues del cuello, la axila, la ingle y el
+    vientre) guardado en su propia textura. Entre escama y escama la piel se
+    oscurece.
+  - Colores naturales: los genes dan el tono, pero la piel se apaga hacia
+    tierras y olivas; lomo oscuro de borde irregular, manchas difusas y pies
+    polvorientos. Las crestas, golas y velas conservan el color vivo.
+  - Anatomía: lomo más estrecho que el vientre, caderas y hombros marcados,
+    mandíbula con su propio alto, cráneo en "A" visto de frente, patas con
+    codo, rodilla y tobillo (o de columna en saurópodos y acorazados) y ojos
+    pequeños en los gigantes.
+  - Esqueleto sencillo: cada pata gira en cadera, rodilla y tobillo para
+    caminar (en el visor y, como tira de 8 cuadros, en el parque), y la
+    mandíbula se abre con lengua y, en los cazadores, dientes que con la boca
+    cerrada quedan tapados por los labios.
+  - En el visor: tocar al animal (o el botón) lo hace rugir, con una voz
+    sintetizada según su tamaño; otro botón lo pone a caminar.
 - **Luz de estudio:** luz principal cálida, luz de contorno fría (heredera del
   sombreado de *Team Fortress 2*), cielo y suelo, sombras con mapa de sombras y
   filtrado PCF, sombra de contacto y curva de tono ACES (la del cine), para que

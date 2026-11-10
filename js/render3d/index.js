@@ -6,7 +6,7 @@ import { buildModel } from './model.js';
 import { createRenderer, m4 } from './gl.js';
 import { defaultGenes } from '../render/dino-svg.js';
 
-export const VERSION = 'r3d-1';
+export const VERSION = 'r3d-2';
 const rad = (d) => (d * Math.PI) / 180;
 
 let support = null;
@@ -104,7 +104,7 @@ function spriteRenderer(W, H) {
 export function spriteKey(species, genes, opts = {}) {
   const g = genes || {};
   const gk = genes ? [g.hue1, g.hue2, g.sat, g.luz, (g.patron || []).join(''), (g.variante || []).join(''), g.seed].join(',') : 'base';
-  return [VERSION, species.id, opts.stage || 'adulto', opts.mood || '', opts.sleeping ? 'z' : '', opts.accesorio || '', opts.silhouette ? 's' : '', opts.size || 'md', gk].join('|');
+  return [VERSION, species.id, opts.stage || 'adulto', opts.mood || '', opts.sleeping ? 'z' : '', opts.accesorio || '', opts.silhouette ? 's' : '', opts.size || 'md', gk].join('|') + (opts.az != null ? `|az${opts.az},${opts.el ?? ''}` : '') + (opts.jaw ? `|j${opts.jaw}` : '') + (opts.walk != null ? `|w${opts.walk}` : '') + (opts.frames ? `|f${opts.frames}` : '');
 }
 
 export function cachedSprite(key) { return cache.get(key) || null; }
@@ -223,7 +223,7 @@ function pump() {
       const out = renderNow(job.species, job.genes, job.opts);
       out.blob.then((blob) => {
         if (!blob) throw new Error('sin imagen');
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob) + (job.opts.frames && !out.frames ? '#fija' : '');
         remember(job.key, url);
         if (job.opts.persist !== false) idbPut(job.key, blob);
         job.resolve(url);
@@ -239,17 +239,30 @@ function pump() {
 
 /** Renderiza ya (sin cola). Devuelve { blob: Promise<Blob>, canvas }. */
 export function renderNow(species, genes, opts = {}) {
-  const W = opts.size === 'sm' ? 240 : opts.size === 'lg' ? 1040 : 480;
+  const W = opts.size === 'sm' ? 240 : opts.size === 'wk' ? 384 : opts.size === 'lg' ? 1040 : 480;
   const H = Math.round((W * 160) / 240);
   const s = spriteRenderer(W, H);
   if (!s) throw new Error('sin WebGL2');
   const model = buildModel(species, genes || defaultGenes(species), opts);
   // Las miniaturas no necesitan una piel de 512 px: se calcula 4 veces más rápido.
-  const scene = s.r.upload(model, { texScale: W < 300 ? 0.5 : 1 });
+  const scene = s.r.upload(model, { texScale: W < 300 ? 0.5 : W < 600 ? 0.75 : 1 });
   const flyer = model.info.plan === 'flyer';
-  const cam = spriteCamera(scene, W, H, flyer ? 30 : 24, flyer ? -24 : 11);
-  s.r.render(scene, cam, { silhouette: !!opts.silhouette, bumpScale: W < 300 ? 0.3 : W < 600 ? 0.5 : 0.8, shells: true, ground: !flyer });
+  const cam = spriteCamera(scene, W, H, opts.az ?? (flyer ? 30 : 24), opts.el ?? (flyer ? -24 : 11));
+  const ro = { silhouette: !!opts.silhouette, bumpScale: W < 300 ? 0.6 : W < 600 ? 0.8 : 1, shells: true, ground: !flyer, jawOpen: opts.jaw || 0 };
   let out = s.canvas;
+  // Tira de caminata: varios cuadros del mismo animal, uno al lado del otro.
+  const frames = opts.frames && model.anim.legs.length && !opts.sleeping ? opts.frames : 0;
+  if (frames) {
+    out = document.createElement('canvas');
+    out.width = W * frames; out.height = H;
+    const g = out.getContext('2d');
+    for (let f = 0; f < frames; f += 1) {
+      s.r.render(scene, cam, { ...ro, walk: (f / frames) * Math.PI * 2, walkAmt: 1 });
+      g.drawImage(s.canvas, f * W, 0);
+    }
+  } else {
+    s.r.render(scene, cam, { ...ro, walk: opts.walk || 0, walkAmt: opts.walk != null ? 1 : 0 });
+  }
   if (opts.sleeping) {
     const c2 = document.createElement('canvas');
     c2.width = W; c2.height = H;
@@ -266,7 +279,7 @@ export function renderNow(species, genes, opts = {}) {
   }
   s.r.dispose(scene);
   const blob = new Promise((resolve) => out.toBlob(resolve, 'image/png'));
-  return { blob, canvas: out };
+  return { blob, canvas: out, frames };
 }
 
 /** PNG en data URL (para la postal, que se rasteriza como imagen SVG). */
@@ -278,6 +291,8 @@ export function renderDataUrl(species, genes, opts = {}) {
 // ------------------------------------------------------------ visor
 
 let hintsShown = 0;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth01 = (x) => { const t = clamp(x, 0, 1); return t * t * (3 - 2 * t); };
 const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
@@ -289,8 +304,12 @@ export function mountViewer(el, species, genes, opts = {}) {
   const canvas = document.createElement('canvas');
   canvas.className = 'dino-3d-canvas';
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', `${opts.title || species.nombre} en 3D. Arrastra o usa las flechas para girarlo.`);
+  canvas.setAttribute('aria-label', `${opts.title || species.nombre} en 3D. Arrastra o usa las flechas para girarlo; toca para que ruja.`);
   canvas.tabIndex = 0;
+  // Envoltorio: el lienzo, la pista de "arrastra" y los botones de acción.
+  const wrap = document.createElement('div');
+  wrap.className = 'dino-3d';
+  wrap.appendChild(canvas);
   const soft = isSoftwareGL();
   const r = createRenderer(canvas, { shadowSize: soft ? 1024 : 2048 });
   if (!r) return null;
@@ -312,11 +331,21 @@ export function mountViewer(el, species, genes, opts = {}) {
   let cam = null;
   let size = [0, 0];
   const t0 = performance.now();
+  // Rugido (abre la boca y levanta la cabeza) y caminata en el sitio.
+  const canRoar = !opts.sleeping;
+  const canWalk = !opts.sleeping && model.anim.legs.length > 0;
+  const jawMax = model.info.head.kind === 'theropod' ? 0.6 : 0.4;
+  const stepTime = clamp(0.75 + 0.05 * (species.longitudM || 4), 0.8, 1.9);
+  let roarAt = -1e9;
+  let walking = false;
+  let walkAmt = 0;
+  let walkPh = 0;
+  let lastT = 0;
   let nextBlink = 1.5 + Math.random() * 2;
   let started = false;
   let disposed = false;
   const resize = () => {
-    const rect = (host.isConnected ? host : el).getBoundingClientRect();
+    const rect = (wrap.isConnected ? wrap : el).getBoundingClientRect();
     const w = Math.max(120, Math.round(Math.min(rect.width || 320, opts.maxWidth || 360)));
     const h = Math.round(w / (opts.aspect || 1.5));
     const dpr = Math.min(dprCap, window.devicePixelRatio || 1);
@@ -329,13 +358,14 @@ export function mountViewer(el, species, genes, opts = {}) {
       cam = viewerCamera(scene, canvas.width, canvas.height, { turntable: true, zoom: opts.zoom });
     }
   };
-  let host = el;
   const frame = (now) => {
     raf = 0;
     if (!visible || disposed) return;
-    if (canvas.isConnected) host = canvas.parentElement || host;
-    else if (started) return; // lo sacaron de la página: esperamos a que vuelva
-    const moving = dragging || Math.abs(vel) > 0.0005;
+    if (!canvas.isConnected && started) return; // lo sacaron de la página: esperamos a que vuelva
+    // (la marca de tiempo del cuadro puede ir unos milisegundos por detrás)
+    const tr = Math.max(0, (now - roarAt) / 1000 + 0.05);
+    const roaring = tr < 1.5;
+    const moving = dragging || Math.abs(vel) > 0.0005 || roaring || walking || walkAmt > 0.01;
     // En reposo basta con ~30 cuadros por segundo: se ve igual y gasta la mitad.
     if (started && !moving && lastDraw && now - lastDraw < 30) { raf = requestAnimationFrame(frame); return; }
     if (lastDraw) {
@@ -350,7 +380,12 @@ export function mountViewer(el, species, genes, opts = {}) {
     lastDraw = now;
     resize();
     const t = (now - t0) / 1000;
+    const dt = Math.min(0.1, lastT ? t - lastT : 0);
+    lastT = t;
     if (!dragging) { yaw += vel; vel *= 0.93; }
+    const open = roaring ? smooth01(tr / 0.16) * (1 - smooth01((tr - 0.95) / 0.5)) : 0;
+    walkAmt += ((walking ? 1 : 0) - walkAmt) * Math.min(1, dt * 5);
+    walkPh += (dt / stepTime) * Math.PI * 2;
     let blink = 0;
     if (!still && !opts.sleeping) {
       const d = t - nextBlink;
@@ -365,15 +400,18 @@ export function mountViewer(el, species, genes, opts = {}) {
       time: still ? 0 : t,
       sway: still ? 0 : 1,
       breath: still ? 0 : 1,
-      yaw: still || opts.sleeping ? 0 : Math.sin(t * 0.35) * 0.16,
-      pitch: still || opts.sleeping ? 0 : Math.sin(t * 0.23 + 1) * 0.05,
+      yaw: (still || opts.sleeping ? 0 : Math.sin(t * 0.35) * 0.16) * (1 - open),
+      pitch: (still || opts.sleeping ? 0 : Math.sin(t * 0.23 + 1) * 0.05) + open * 0.2 + walkAmt * Math.sin(walkPh * 2) * 0.025,
       flapAmt: still ? 0 : 1,
-      blink,
+      blink: Math.max(blink, open * 0.45),
+      jawOpen: open * jawMax * (1 + 0.06 * Math.sin(tr * 46)),
+      walk: walkPh,
+      walkAmt,
     });
     if (!started) {
       started = true;
       el.innerHTML = '';
-      el.appendChild(canvas);
+      el.appendChild(wrap);
       el.classList.add('is-3d');
       if (io) io.observe(canvas);
       if (hintsShown < 3 && !opts.noHint) {
@@ -382,16 +420,42 @@ export function mountViewer(el, species, genes, opts = {}) {
         hint.className = 'dino-3d-hint';
         hint.setAttribute('aria-hidden', 'true');
         hint.textContent = '↔ Arrastra para girar';
-        el.appendChild(hint);
+        wrap.appendChild(hint);
       }
     }
-    if (!still || dragging || Math.abs(vel) > 0.0005) raf = requestAnimationFrame(frame);
+    if (!still || moving) raf = requestAnimationFrame(frame);
     else lastDraw = 0;
   };
   const kick = () => { if (!raf && visible) { lastDraw = 0; raf = requestAnimationFrame(frame); } };
   let hint = null;
   const dropHint = () => { if (hint) { hint.remove(); hint = null; } };
-  const onDown = (e) => { dropHint(); dragging = true; lastX = e.clientX; vel = 0; canvas.setPointerCapture?.(e.pointerId); kick(); };
+  const roar = () => {
+    if (!canRoar) return;
+    roarAt = performance.now();
+    dropHint();
+    wrap.dispatchEvent(new CustomEvent('dino-roar', { bubbles: true, detail: { species, stage: opts.stage || 'adulto' } }));
+    kick();
+  };
+  const setWalk = (on) => { walking = !!on && canWalk; if (walkBtn) walkBtn.setAttribute('aria-pressed', String(walking)); kick(); };
+  let downAt = [0, 0, 0];
+  let walkBtn = null;
+  if (!opts.noControls && (canRoar || canWalk)) {
+    const bar = document.createElement('div');
+    bar.className = 'dino-3d-ctl';
+    const mk = (label, icon, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.innerHTML = `<span aria-hidden="true">${icon}</span> ${label}`;
+      b.addEventListener('click', fn);
+      bar.appendChild(b);
+      return b;
+    };
+    if (canRoar) mk((species.longitudM || 4) < 2.5 ? 'Llamar' : 'Rugir', '🔊', roar);
+    if (canWalk) { walkBtn = mk('Caminar', '🐾', () => setWalk(!walking)); walkBtn.setAttribute('aria-pressed', 'false'); }
+    wrap.appendChild(bar);
+  }
+  const onDown = (e) => { dropHint(); dragging = true; lastX = e.clientX; downAt = [e.clientX, e.clientY, performance.now()]; vel = 0; canvas.setPointerCapture?.(e.pointerId); kick(); };
   const onMove = (e) => {
     if (!dragging) return;
     const dx = e.clientX - lastX;
@@ -400,10 +464,16 @@ export function mountViewer(el, species, genes, opts = {}) {
     vel = dx * 0.012;
     kick();
   };
-  const onUp = () => { dragging = false; kick(); };
+  const onUp = (e) => {
+    dragging = false;
+    // Un toque corto sin arrastrar: ruge.
+    if (e.type === 'pointerup' && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) < 6 && performance.now() - downAt[2] < 400) roar();
+    kick();
+  };
   const onKey = (e) => {
     if (e.key === 'ArrowLeft') { dropHint(); vel = -0.06; kick(); e.preventDefault(); }
     if (e.key === 'ArrowRight') { dropHint(); vel = 0.06; kick(); e.preventDefault(); }
+    if (e.key === 'Enter' || e.key === ' ') { roar(); e.preventDefault(); }
   };
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointermove', onMove);
@@ -423,7 +493,9 @@ export function mountViewer(el, species, genes, opts = {}) {
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); cancelAnimationFrame(raf); raf = 0; });
   kick();
   return {
-    canvas,
+    canvas: wrap,
+    roar,
+    setWalk,
     /** Llamar después de mover el lienzo a otro contenedor. */
     kick: () => { visible = true; kick(); },
     dispose() {

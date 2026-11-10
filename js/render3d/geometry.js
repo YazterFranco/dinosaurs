@@ -22,7 +22,21 @@ export const mix = (a, b, t) => a + (b - a) * t;
 
 /** Malla en arreglos planos. `col` = [r, g, b, ao] (multiplica el color del material). */
 export class Mesh {
-  constructor() { this.pos = []; this.nor = []; this.uv = []; this.col = []; this.idx = []; }
+  constructor() { this.pos = []; this.nor = []; this.uv = []; this.col = []; this.idx = []; this.rig = null; }
+
+  /**
+   * Datos de animación por vértice: [pata (1..4, 0 = ninguna), nivel de
+   * articulación (0 cuerpo … 1 muslo … 2 espinilla … 3 pie), peso de la
+   * mandíbula, 0]. `r` es un arreglo o una función de la posición.
+   */
+  setRig(r) {
+    this.rig = [];
+    for (let i = 0; i < this.count; i += 1) {
+      const v = typeof r === 'function' ? r([this.pos[i * 3], this.pos[i * 3 + 1], this.pos[i * 3 + 2]], i) : r;
+      this.rig.push(v[0] || 0, v[1] || 0, v[2] || 0, v[3] || 0);
+    }
+    return this;
+  }
 
   get count() { return this.pos.length / 3; }
 
@@ -36,6 +50,10 @@ export class Mesh {
 
   append(m) {
     const o = this.count;
+    if (m.rig || this.rig) {
+      if (!this.rig) this.rig = new Array(o * 4).fill(0);
+      this.rig.push(...(m.rig || new Array(m.count * 4).fill(0)));
+    }
     this.pos.push(...m.pos); this.nor.push(...m.nor); this.uv.push(...m.uv); this.col.push(...m.col);
     for (const i of m.idx) this.idx.push(i + o);
     return this;
@@ -70,6 +88,7 @@ export class Mesh {
   mirrorZ() {
     const m = new Mesh();
     m.pos = this.pos.slice(); m.nor = this.nor.slice(); m.uv = this.uv.slice(); m.col = this.col.slice();
+    if (this.rig) m.rig = this.rig.slice();
     for (let i = 0; i < m.count; i += 1) { m.pos[i * 3 + 2] *= -1; m.nor[i * 3 + 2] *= -1; }
     for (let i = 0; i < this.idx.length; i += 3) m.idx.push(this.idx[i], this.idx[i + 2], this.idx[i + 1]);
     return m;
@@ -99,11 +118,14 @@ export class Mesh {
 }
 
 const WHITE = [1, 1, 1, 1];
+const ZERO4 = [0, 0, 0, 0];
 
 /**
  * Superficie de anillos. `rings[r].pts` son K puntos de una sección cerrada;
  * `rings[r].u` es la coordenada de textura a lo largo. Si un anillo está
  * colapsado (punta de cola o de cuerno) la normal apunta a lo largo del eje.
+ * Opcionales por anillo: `vs` (coordenada v de cada punto, creciente),
+ * `cols` (color de cada punto) y `rig` (datos de animación de cada punto).
  */
 export function ringSurface(rings, opts = {}) {
   const m = new Mesh();
@@ -125,6 +147,8 @@ export function ringSurface(rings, opts = {}) {
     for (let k = 0; k < K; k += Math.max(1, K >> 2)) sign += dot(raw(r, k), sub(rings[r].pts[k], centers[r]));
   }
   const s = sign >= 0 ? 1 : -1;
+  const hasRig = rings.some((r) => r.rig);
+  if (hasRig) m.rig = [];
   for (let r = 0; r < R; r += 1) {
     const P = rings[r].pts;
     for (let k = 0; k <= K; k += 1) {
@@ -134,8 +158,13 @@ export function ringSurface(rings, opts = {}) {
         const other = centers[r === 0 ? 1 : R - 2];
         n = sub(centers[r], other);
       } else n = mul(n, s);
-      const c = typeof color === 'function' ? color(r, kk, P[kk]) : color;
-      m.vert(P[kk], norm(n), [rings[r].u, opts.vFn ? opts.vFn(kk / K) : kk / K], c);
+      const c = rings[r].cols ? rings[r].cols[kk] : typeof color === 'function' ? color(r, kk, P[kk]) : color;
+      // v llega a 1 en el vértice repetido: así el último tramo no recorre la
+      // textura entera al revés (se veía como una raya en el costado lejano).
+      const vs = rings[r].vs;
+      const v = vs ? (k < K ? vs[k] : vs[0] + 1) : opts.vFn ? opts.vFn(k / K) : k / K;
+      m.vert(P[kk], norm(n), [rings[r].u, v], c);
+      if (hasRig) { const g = rings[r].rig ? rings[r].rig[kk] : ZERO4; m.rig.push(g[0], g[1], g[2], g[3] || 0); }
     }
   }
   const W = K + 1;
@@ -145,6 +174,7 @@ export function ringSurface(rings, opts = {}) {
       const b = a + 1;
       const c = a + W;
       const d = c + 1;
+      if (opts.skip && opts.skip.includes(k)) continue; // ranura abierta (la boca)
       if (s > 0) { m.idx.push(a, c, b, b, c, d); } else { m.idx.push(a, b, c, b, d, c); }
     }
   }
@@ -255,7 +285,8 @@ export function tube(path, radii, opts = {}) {
     const r0 = rAt(0);
     for (let s = capSteps; s >= 1; s -= 1) {
       const a = (s / capSteps) * (Math.PI / 2);
-      rings.push({ pts: ring(sub(dense[0], mul(T[0], Math.sin(a) * r0)), 0, Math.cos(a) * r0 + 1e-5), u: 0 });
+      // La textura sigue sobre la punta redondeada (si no, se estira en rayos).
+      rings.push({ pts: ring(sub(dense[0], mul(T[0], Math.sin(a) * r0)), 0, Math.cos(a) * r0 + 1e-5), u: -(a * r0) / (pathLen || 1) });
     }
   }
   for (let i = 0; i < N; i += 1) {
@@ -266,7 +297,7 @@ export function tube(path, radii, opts = {}) {
     const r1 = rAt(1);
     for (let s = 1; s <= capSteps; s += 1) {
       const a = (s / capSteps) * (Math.PI / 2);
-      rings.push({ pts: ring(add(dense[N - 1], mul(T[N - 1], Math.sin(a) * r1)), N - 1, Math.cos(a) * r1 + 1e-5), u: 1 });
+      rings.push({ pts: ring(add(dense[N - 1], mul(T[N - 1], Math.sin(a) * r1)), N - 1, Math.cos(a) * r1 + 1e-5), u: 1 + (a * r1) / (pathLen || 1) });
     }
   }
   const m = ringSurface(rings, { color: opts.color });
@@ -362,7 +393,9 @@ export function sheet(grid, opts = {}) {
   for (let r = 0; r < R - 1; r += 1) {
     for (let c = 0; c < C - 1; c += 1) {
       const a = r * C + c; const b = a + 1; const d = a + C; const e = d + 1;
-      if (opts.flip) m.idx.push(a, b, d, b, e, d); else m.idx.push(a, d, b, b, d, e);
+      // El orden de los vértices coincide con la normal guardada: así la cara
+      // que mira a la cámara se ilumina por delante y no a contraluz.
+      if (opts.flip) m.idx.push(a, d, b, b, d, e); else m.idx.push(a, b, d, b, e, d);
     }
   }
   return m;

@@ -5,7 +5,7 @@
 // relieve de escamas por derivadas, membranas translúcidas, capas de plumas
 // y mapeo de tonos filmico (ACES, aproximación de Narkowicz).
 
-import { scaleBump, strandNoise, irisTexture, bodyTexture, headTexture, cssToRgb } from './textures.js';
+import { skinDetail, strandNoise, irisTexture, bodyTexture, headTexture, cssToRgb, natural } from './textures.js';
 import { parsePath } from './model.js';
 
 // ------------------------------------------------------------ matemáticas
@@ -54,17 +54,29 @@ layout(location=0) in vec3 aPos;
 layout(location=1) in vec3 aNor;
 layout(location=2) in vec2 aUv;
 layout(location=3) in vec4 aCol;
+layout(location=4) in vec4 aRig;
 uniform mat4 uModel, uView, uProj, uLightVP;
+uniform vec4 uJaw, uWalk;
+uniform vec4 uLegA[4];
+uniform vec4 uLegB[4];
 uniform float uTime;
 uniform vec4 uTail, uBody, uNeck, uNeck2, uFlap;
 uniform float uFlapSide, uShell, uShadowOff;
+uniform vec4 uShellU;
 uniform vec3 uShellDir;
 uniform int uLid;
 uniform vec3 uLidC, uLidX, uLidY, uLidZ;
 uniform float uLidR, uLidPhi, uLidTilt;
-out vec3 vWorld; out vec3 vNormal; out vec2 vUv; out vec4 vCol; out vec4 vLight;
+out vec3 vWorld; out vec3 vNormal; out vec2 vUv; out vec4 vCol; out vec4 vLight; out float vFur;
 vec3 rotY(vec3 p, float a){ float c=cos(a), s=sin(a); return vec3(c*p.x+s*p.z, p.y, -s*p.x+c*p.z); }
 vec3 rotZ(vec3 p, float a){ float c=cos(a), s=sin(a); return vec3(c*p.x-s*p.y, s*p.x+c*p.y, p.z); }
+// Gira un punto (y su normal) en el plano lateral alrededor de una articulación.
+void joint(inout vec3 p, inout vec3 n, vec2 piv, float a){
+  float c = cos(a), s = sin(a);
+  vec2 q = p.xy - piv;
+  p.xy = piv + vec2(c*q.x - s*q.y, s*q.x + c*q.y);
+  n.xy = vec2(c*n.x - s*n.y, s*n.x + c*n.y);
+}
 void main(){
   vec3 p = aPos; vec3 n = aNor;
   if (uLid == 1) {
@@ -74,6 +86,19 @@ void main(){
     d = vec3(c*d.x - s*d.y, s*d.x + c*d.y, d.z);
     n = normalize(uLidX*d.x + uLidY*d.y + uLidZ*d.z);
     p = uLidC + n * uLidR;
+  }
+  // Mandíbula: los vértices de abajo de la boca giran en la articulación.
+  if (aRig.z > 0.0 && uJaw.z != 0.0) joint(p, n, uJaw.xy, -uJaw.z*aRig.z);
+  // Paso: cada pata gira en la cadera, la rodilla y el tobillo, del extremo
+  // hacia el cuerpo. Avanza en el aire con la rodilla doblada y empuja recta.
+  if (aRig.x > 0.5 && uWalk.y > 0.0) {
+    int li = int(aRig.x + 0.5) - 1;
+    vec4 A = uLegA[li]; vec4 B = uLegB[li];
+    float ph = uWalk.x + B.z;
+    float sw = sin(ph); float lift = max(0.0, cos(ph));
+    joint(p, n, B.xy, lift*0.6*uWalk.w*B.w*uWalk.y*clamp(aRig.y - 2.0, 0.0, 1.0));
+    joint(p, n, A.zw, -lift*0.9*uWalk.w*B.w*uWalk.y*clamp(aRig.y - 1.0, 0.0, 1.0));
+    joint(p, n, A.xy, (sw*uWalk.z + lift*0.1*B.w)*uWalk.y*clamp(aRig.y, 0.0, 1.0));
   }
   // Cola que se balancea
   float tt = clamp((uTail.x - p.x) / max(1.0, uTail.x - uTail.y), 0.0, 1.0);
@@ -100,10 +125,12 @@ void main(){
     float ny = c*n.y + s*n.z; float nz = -s*n.y + c*n.z; n.y = ny; n.z = nz;
   }
   // Capas de plumas: crecen por la normal y se peinan hacia atrás
+  vFur = 1.0;
   if (uShell > 0.0) {
     // Sin plumón en las puntas (cola y cuello), para no formar "agujas".
-    float ff = smoothstep(0.0, 0.09, aUv.x) * (1.0 - smoothstep(0.95, 1.0, aUv.x));
+    float ff = smoothstep(uShellU.x, uShellU.y, aUv.x) * (1.0 - smoothstep(uShellU.z, uShellU.w, aUv.x));
     p += (n*uShell + uShellDir*uShell*uShell*0.35) * ff;
+    vFur = ff;
   }
   vec4 wp = uModel * vec4(p, 1.0);
   vWorld = wp.xyz;
@@ -116,10 +143,11 @@ void main(){
 const FS = `#version 300 es
 precision highp float;
 precision highp sampler2DShadow;
-in vec3 vWorld; in vec3 vNormal; in vec2 vUv; in vec4 vCol; in vec4 vLight;
+in vec3 vWorld; in vec3 vNormal; in vec2 vUv; in vec4 vCol; in vec4 vLight; in float vFur;
 uniform vec3 uColor;
 uniform sampler2D uMap; uniform float uUseMap;
-uniform sampler2D uBump; uniform float uBumpScale; uniform vec2 uBumpRep;
+uniform sampler2D uBump; uniform float uBumpScale; uniform vec2 uBumpRep, uBumpRep2;
+uniform vec3 uBumpMix; uniform float uMacro, uCav, uRing;
 uniform sampler2D uStrand; uniform float uShellT; uniform vec2 uStrandRep;
 uniform sampler2DShadow uShadow; uniform float uUseShadow;
 uniform vec3 uCam, uKeyDir, uKeyCol, uRimDir, uRimCol, uSky, uGround;
@@ -136,12 +164,23 @@ float shadowAt(vec4 lp){
 }
 vec3 aces(vec3 x){ x *= 0.6; return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }
 vec2 gdx, gdy;
-vec3 bumpN(vec3 N){
-  vec2 uv = vUv*uBumpRep;
-  vec2 dx = gdx*uBumpRep, dy = gdy*uBumpRep;
-  float h0 = textureGrad(uBump, uv, dx, dy).r;
-  float hx = textureGrad(uBump, uv+dx, dx, dy).r - h0;
-  float hy = textureGrad(uBump, uv+dy, dx, dy).r - h0;
+float fineH;
+// Altura de la piel en un punto: escamas finas + escamas grandes + arrugas
+// (mosaico) + relieve anatómico del propio animal (alfa de su textura).
+float skinH(vec2 o){
+  vec2 uv = vUv + o;
+  vec4 a = textureGrad(uBump, uv*uBumpRep, gdx*uBumpRep, gdy*uBumpRep);
+  vec4 b = textureGrad(uBump, uv*uBumpRep2 + vec2(0.37, 0.0), gdx*uBumpRep2, gdy*uBumpRep2);
+  fineH = a.r;
+  float h = a.r*uBumpMix.x + b.b*uBumpMix.y + b.g*uBumpMix.z;
+  // Pliegues en anillo de las patas (como los de un elefante), a parches.
+  if (uRing > 0.0) h += uRing*smoothstep(0.25, 0.7, b.b)*(sqrt(abs(sin(3.14159*(uv.x*5.2 + a.g*1.4)))) - 0.6);
+  if (uMacro > 0.0) h += textureGrad(uMap, uv, gdx, gdy).a*uMacro;
+  return h;
+}
+vec3 bumpN(vec3 N, float h0){
+  float hx = skinH(gdx) - h0;
+  float hy = skinH(gdy) - h0;
   vec3 sx = dFdx(vWorld), sy = dFdy(vWorld);
   vec3 r1 = cross(sy, N), r2 = cross(N, sx);
   float det = dot(sx, r1);
@@ -159,12 +198,19 @@ void main(){
   if (uUseMap > 0.5) base *= textureGrad(uMap, vUv, gdx, gdy).rgb;
   if (uShellT > 0.0) {
     float s = textureGrad(uStrand, vUv*uStrandRep, gdx*uStrandRep, gdy*uStrandRep).r;
-    if (s < uShellT) discard;
+    if (s < uShellT || vFur < 0.04) discard;
     base *= mix(0.62, 1.1, uShellT);
   }
   vec3 N = normalize(vNormal);
   if (!gl_FrontFacing) N = -N;
-  if (uBumpScale > 0.0) N = bumpN(N);
+  float cav = 1.0;
+  if (uBumpScale > 0.0) {
+    float h0 = skinH(vec2(0.0));
+    // Entre escama y escama la piel es más oscura y mate.
+    cav = smoothstep(0.08, 0.62, fineH);
+    base *= mix(1.0 - uCav, 1.0 + uCav*0.3, cav);
+    N = bumpN(N, h0);
+  }
   vec3 V = normalize(uCam - vWorld);
   vec3 L = normalize(uKeyDir);
   float ndl = dot(N, L);
@@ -179,12 +225,13 @@ void main(){
   float dd = ndh*ndh*(a*a - 1.0) + 1.0;
   float D = a*a/(3.14159*dd*dd);
   float F = 0.04 + 0.96*pow(1.0 - max(dot(H, V), 0.0), 5.0);
-  float spec = D*F*0.25*uSpec*max(ndl, 0.0);
+  float spec = D*F*0.25*uSpec*max(ndl, 0.0)*mix(0.45, 1.15, cav);
   vec3 sc = mix(vec3(1.0), base, uMetal);
   vec3 col = base*(1.0 - uMetal*0.85)*uKeyCol*(diff*sh) + base*uKeyCol*sss*vec3(1.0, 0.42, 0.3)*0.55;
   col += sc*uKeyCol*spec*sh;
   float hem = N.y*0.5 + 0.5;
-  col += base*mix(uGround, uSky, hem)*vCol.a*(1.0 - uMetal*0.6);
+  // La luz ambiente también llega menos donde el cuerpo se hace sombra.
+  col += base*mix(uGround, uSky, hem)*vCol.a*(1.0 - uMetal*0.6)*mix(0.72, 1.0, sh);
   if (uMetal > 0.0) { vec3 R = reflect(-V, N); col += base*mix(uGround*2.0, uSky*2.6, R.y*0.5+0.5)*uMetal*0.55; }
   float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   float rimL = max(0.0, dot(N, normalize(uRimDir))*0.75 + 0.25);
@@ -261,19 +308,26 @@ function compile(gl, vs, fs) {
 }
 
 // ------------------------------------------------------------ materiales
+// bump = [escamas finas, escamas grandes, arrugas]; macro = relieve anatómico
+// de la textura del animal; cav = cuánto se oscurece entre escamas.
 const MATS = {
-  body: { map: 'body', rough: 0.58, spec: 0.5, sss: 0.42, bump: 0.9, rep: 'body' },
-  head: { map: 'head', rough: 0.52, spec: 0.55, sss: 0.4, bump: 0.7, rep: 'head' },
-  skin: { color: 'piel', rough: 0.55, spec: 0.5, sss: 0.4, bump: 0.6, rep: [5, 4] },
-  limb: { color: 'piel', rough: 0.62, spec: 0.45, sss: 0.38, bump: 0.9, rep: [1, 1] },
-  limbFar: { color: 'pielFar', rough: 0.62, spec: 0.4, sss: 0.38, bump: 0.9, rep: [1, 1] },
-  shade: { color: 'sombra', rough: 0.55, spec: 0.5, sss: 0.25, bump: 0.5, rep: [2, 2] },
-  accent: { color: 'acento', rough: 0.5, spec: 0.45, sss: 0.45, trans: 0.3, bump: 0.35, rep: [5, 5] },
-  plate: { color: 'acento', rough: 0.45, spec: 0.5, sss: 0.5, trans: 0.55, bump: 0.25, rep: [3, 3] },
-  membrane: { color: 'acento', rough: 0.55, spec: 0.35, sss: 0.55, trans: 0.95, bump: 0.2, rep: [6, 3], double: true },
+  body: { map: 'body', rough: 0.6, spec: 0.5, sss: 0.42, bump: [0.55, 0.5, 0.75], macro: 1.5, cav: 0.2, rep: 'body' },
+  head: { map: 'head', rough: 0.55, spec: 0.55, sss: 0.4, bump: [0.5, 0.35, 0.5], macro: 1.2, cav: 0.18, rep: 'head' },
+  skin: { color: 'piel', rough: 0.58, spec: 0.5, sss: 0.4, bump: [0.5, 0.3, 0.4], cav: 0.16, rep: 'patch' },
+  limb: { color: 'piel', rough: 0.64, spec: 0.45, sss: 0.38, bump: [0.5, 0.3, 0.25], ring: 0.45, cav: 0.16, rep: 'limb' },
+  limbFar: { color: 'pielFar', rough: 0.64, spec: 0.4, sss: 0.38, bump: [0.5, 0.3, 0.25], ring: 0.45, cav: 0.16, rep: 'limb' },
+  shade: { color: 'sombra', rough: 0.55, spec: 0.5, sss: 0.25, bump: [0.3, 0.3, 0.5], cav: 0.15, rep: [2, 2] },
+  accent: { color: 'acento', rough: 0.5, spec: 0.45, sss: 0.45, trans: 0.3, bump: [0.2, 0.2, 0.4], cav: 0.1, rep: [5, 5] },
+  frill: { color: 'acento', rough: 0.6, spec: 0.4, sss: 0.45, trans: 0.12, bump: [0.5, 0.4, 0.6], cav: 0.2, rep: [5, 4], double: true },
+  plate: { color: 'acento', rough: 0.45, spec: 0.5, sss: 0.5, trans: 0.55, bump: [0.1, 0.25, 0.6], cav: 0.1, rep: [3, 3] },
+  membrane: { color: 'acento', rough: 0.55, spec: 0.35, sss: 0.55, trans: 0.95, bump: [0, 0.1, 0.5], cav: 0.06, rep: [6, 3], double: true },
   feather: { color: 'acento', rough: 0.8, spec: 0.2, sss: 0.3, double: true },
+  wing: { color: 'piel', rough: 0.75, spec: 0.25, sss: 0.35, trans: 0.2, double: true },
   keratin: { color: '#ddd0b6', rough: 0.3, spec: 0.8, sss: 0.15 },
   claw: { color: '#5d4f40', rough: 0.28, spec: 0.9, sss: 0.05 },
+  mouth: { color: '#8e3a3c', rough: 0.3, spec: 0.7, sss: 0.5, double: true },
+  tongue: { color: '#c9606a', rough: 0.28, spec: 0.8, sss: 0.6 },
+  tooth: { color: '#efe6cf', rough: 0.25, spec: 0.9, sss: 0.2 },
   eye: { map: 'iris', rough: 0.07, spec: 2.4, sss: 0 },
   lid: { color: 'piel', rough: 0.55, spec: 0.4, sss: 0.35, double: true },
 };
@@ -303,7 +357,7 @@ export function createRenderer(canvas, opts = {}) {
   const lit = compile(gl, VS, FS);
   const depth = compile(gl, VS, DEPTH_FS);
   const ground = compile(gl, GROUND_VS, GROUND_FS);
-  const bumpTex = makeTex(gl, scaleBump(256, 9), { srgb: false });
+  const bumpTex = makeTex(gl, skinDetail(256), { srgb: false });
   const strandTex = makeTex(gl, strandNoise(64), { srgb: false, mip: false });
   gl.bindTexture(gl.TEXTURE_2D, strandTex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -338,7 +392,7 @@ export function createRenderer(canvas, opts = {}) {
     const ts = uo.texScale || 1;
     const c = model.colors;
     const rgb = {
-      piel: cssToRgb(c.piel), sombra: cssToRgb(c.sombra), acento: cssToRgb(c.acento),
+      piel: natural(cssToRgb(c.piel)), sombra: natural(cssToRgb(c.sombra), 0.6, 0.9), acento: natural(cssToRgb(c.acento), 0.86, 0.98),
     };
     rgb.pielFar = rgb.piel.map((v, i) => v * 0.82 + rgb.sombra[i] * 0.18);
     const info = model.info;
@@ -349,12 +403,16 @@ export function createRenderer(canvas, opts = {}) {
     };
     const lastBody = info.bodyMap[info.bodyMap.length - 1];
     const avgGirth = info.bodyMap.reduce((a, m) => a + m.girth, 0) / info.bodyMap.length;
-    // Cada mosaico de relieve tiene 9 × 9 escamas.
-    const tile = (info.feathered ? 2.4 : 1.8) * 9;
+    // Cada mosaico de detalle tiene 14 × 14 escamas finas; `skinScale` las
+    // hace más pequeñas en los animales grandes, como en la realidad.
+    const tile = (info.skinScale || 1) * 14;
     const headLen = (info.head.x1 - info.head.x0) * info.headScale;
     const reps = {
       body: [Math.max(2, lastBody.s / tile), Math.max(2, avgGirth / tile)],
-      head: [Math.max(1, headLen / (tile * 0.62)), Math.max(2, (headLen * 1.6) / (tile * 0.62))],
+      head: [Math.max(1, headLen / (tile * 0.8)), Math.max(2, (headLen * 1.6) / (tile * 0.8))],
+      // Las patas traen sus uv ya medidas en mosaicos (tube con uvUnit).
+      limb: [1, 1],
+      patch: [2, 2],
     };
     const groups = new Map();
     const lids = [];
@@ -366,17 +424,18 @@ export function createRenderer(canvas, opts = {}) {
     }
     const draws = [];
     const mk = (meshes, part) => {
-      const pos = []; const nor = []; const uv = []; const col = []; const idx = [];
+      const pos = []; const nor = []; const uv = []; const col = []; const rig = []; const idx = [];
       let off = 0;
       for (const m of meshes) {
         pos.push(...m.pos); nor.push(...m.nor); uv.push(...m.uv); col.push(...m.col);
+        if (m.rig) rig.push(...m.rig); else for (let i = 0; i < m.count * 4; i += 1) rig.push(0);
         for (const i of m.idx) idx.push(i + off);
         off += m.count;
       }
       const vao = gl.createVertexArray();
       gl.bindVertexArray(vao);
       const bufs = [];
-      [[pos, 3], [nor, 3], [uv, 2], [col, 4]].forEach(([arr, n], loc) => {
+      [[pos, 3], [nor, 3], [uv, 2], [col, 4], [rig, 4]].forEach(([arr, n], loc) => {
         const b = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, b);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW);
@@ -396,7 +455,13 @@ export function createRenderer(canvas, opts = {}) {
       const colr = mat.color ? (mat.color[0] === '#' ? cssToRgb(mat.color) : rgb[mat.color]) : [255, 255, 255];
       mat.lin = toLin(colr);
       const rp = Array.isArray(mat.rep) ? mat.rep : reps[mat.rep] || [4, 4];
-      mat.rep2 = [rp[0], Math.max(1, Math.round(rp[1]))];
+      // Alrededor del cuerpo (v) las repeticiones son enteras para que el
+      // mosaico cierre; en las patas la uv ya viene en vueltas enteras.
+      const whole = (x) => Math.max(1, Math.round(x));
+      mat.rep2 = [rp[0], whole(rp[1])];
+      // Segunda capa (escamas grandes y arrugas) a un tercio de la escala; en
+      // las patas no hay vueltas enteras que aprovechar y se usa la misma.
+      mat.rep3 = mat.rep === 'limb' ? mat.rep2 : [rp[0] * 0.29, whole(rp[1] * 0.29)];
       return { vao, bufs, count: idx.length, mat, part };
     };
     for (const { meshes, part } of groups.values()) draws.push(mk(meshes, part));
@@ -440,6 +505,17 @@ export function createRenderer(canvas, opts = {}) {
     gl.uniform4fv(u.uNeck2, [a.pitch || 0, 0, 0, 0]);
     gl.uniform4fv(u.uFlap, [a.flap[0], a.flap[1], a.flap[2] * (a.flapAmt ?? 0), a.flap[3]]);
     gl.uniform1f(u.uShadowOff, a.shadowOff ?? Math.max(0.4, (a.radius || 60) * 0.012));
+    const jaw = a.jaw || [0, 0];
+    gl.uniform4fv(u.uJaw, [jaw[0], jaw[1], a.jawOpen || 0, 0]);
+    const legs = a.legs || [];
+    const walkAmt = legs.length ? (a.walkAmt || 0) : 0;
+    gl.uniform4fv(u.uWalk, [a.walk || 0, walkAmt, a.stride || 0.4, a.bend ?? 1]);
+    if (walkAmt > 0 && u['uLegA[0]']) {
+      const A = new Float32Array(16); const B = new Float32Array(16);
+      legs.slice(0, 4).forEach((l, i) => { A.set([l.hip[0], l.hip[1], l.knee[0], l.knee[1]], i * 4); B.set([l.ankle[0], l.ankle[1], l.phase, l.bend], i * 4); });
+      gl.uniform4fv(u['uLegA[0]'], A);
+      gl.uniform4fv(u['uLegB[0]'], B);
+    }
   }
 
   function drawPart(prog, d, scene, a, pass) {
@@ -469,8 +545,13 @@ export function createRenderer(canvas, opts = {}) {
       gl.bindTexture(gl.TEXTURE_2D, scene.tex[m.map]);
       gl.uniform1i(u.uMap, 0);
     }
-    gl.uniform1f(u.uBumpScale, (m.bump || 0) * (a.bumpScale ?? 1));
+    gl.uniform1f(u.uBumpScale, m.bump ? (a.bumpScale ?? 1) : 0);
+    gl.uniform3fv(u.uBumpMix, m.bump || [0, 0, 0]);
+    gl.uniform1f(u.uMacro, m.map && m.macro ? m.macro : 0);
+    gl.uniform1f(u.uCav, m.cav || 0);
+    gl.uniform1f(u.uRing, m.ring || 0);
     gl.uniform2fv(u.uBumpRep, m.rep2);
+    gl.uniform2fv(u.uBumpRep2, m.rep3);
     gl.uniform1f(u.uRough, m.rough ?? 0.6);
     gl.uniform1f(u.uSpec, m.spec ?? 0.4);
     gl.uniform1f(u.uSSS, m.sss ?? 0.3);
@@ -484,10 +565,11 @@ export function createRenderer(canvas, opts = {}) {
     gl.drawElements(gl.TRIANGLES, d.count, gl.UNSIGNED_INT, 0);
     if (d.part.shells && !a.silhouette && a.shells !== false) {
       const { len, count } = d.part.shells;
+      gl.uniform4fv(u.uShellU, d.part.shells.range || [0, 0.09, 0.95, 1]);
       gl.activeTexture(gl.TEXTURE2);
       gl.bindTexture(gl.TEXTURE_2D, strandTex);
       gl.uniform1i(u.uStrand, 2);
-      gl.uniform2fv(u.uStrandRep, [Math.max(40, scene.info.bodyMap[scene.info.bodyMap.length - 1].s / 1.1), 26]);
+      gl.uniform2fv(u.uStrandRep, d.part.mat === 'head' ? [26, 30] : [Math.max(40, scene.info.bodyMap[scene.info.bodyMap.length - 1].s / 1.1), 26]);
       gl.uniform3fv(u.uShellDir, norm3([-1, -0.35, 0]).map((v) => v / Math.max(0.5, len)));
       gl.uniform1f(u.uBumpScale, 0);
       for (let i = 1; i <= count; i += 1) {

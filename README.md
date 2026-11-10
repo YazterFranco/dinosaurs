@@ -11,7 +11,8 @@ paso de compilación: HTML, CSS y JavaScript con módulos ES.
 
 Los dinosaurios son modelos 3D que el juego genera en el navegador (WebGL2,
 motor propio): escamas con relieve, plumas, membranas translúcidas, sombras y
-un visor que se gira con el dedo. Si el dispositivo no tiene WebGL2, o se apaga
+un visor que se gira con el dedo. Caminan en el parque y, si los tocas, rugen
+abriendo la boca. Si el dispositivo no tiene WebGL2, o se apaga
 en Más → Ajustes, se usa el dibujo vectorial.
 
 ## Cómo jugar

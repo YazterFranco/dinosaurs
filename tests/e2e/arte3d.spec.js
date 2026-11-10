@@ -31,7 +31,8 @@ const softwareGL = (page) => page.evaluate(() => {
 test('con WebGL2 el parque usa imágenes 3D y la ficha trae un visor que se gira', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
-  // Forzado: en las máquinas de pruebas WebGL suele ir por software.
+  // Forzado: en las máquinas de pruebas WebGL suele ir por software (y lento).
+  test.setTimeout(120_000);
   await page.addInitScript(() => localStorage.setItem('dino-refugio-3d', 'on'));
   await start(page);
   test.skip(!(await hasWebGL2(page)), 'este navegador no tiene WebGL2');
@@ -48,6 +49,14 @@ test('con WebGL2 el parque usa imágenes 3D y la ficha trae un visor que se gira
   await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2, { steps: 4 });
   await page.mouse.up();
   await expect(page.locator('#dino-portrait .dino-3d-hint')).toHaveCount(0);
+  // Botones del visor: rugir (avisa para el sonido) y caminar.
+  const roared = page.evaluate(() => new Promise((res) => document.addEventListener('dino-roar', () => res(true), { once: true })));
+  await page.locator('#dino-portrait .dino-3d-ctl button').first().click();
+  expect(await roared).toBe(true);
+  const walk = page.locator('#dino-portrait .dino-3d-ctl button[aria-pressed]');
+  await walk.click();
+  await expect(walk).toHaveAttribute('aria-pressed', 'true');
+  await walk.click();
   expect(errors).toEqual([]);
 });
 

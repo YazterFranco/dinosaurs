@@ -44,13 +44,20 @@ const viewers = new Map(); // clave del visor → { canvas, kick, dispose, look 
 
 const floats = (sp) => sp.look.plan === 'flyer' || sp.look.plan === 'swim';
 
+const WALK_FRAMES = 8;
+
 function imgTag(url, species, o, extra = '') {
   const cls = ['dino-svg', 'dino-img'];
-  if (o.anim && !o.sleeping) cls.push(floats(species) ? 'is-float' : 'is-anim');
+  // Tira de caminata (si el animal no tiene patas llega una imagen fija).
+  const strip = o.frames && !url.endsWith('#fija');
+  if (o.anim && !o.sleeping && !strip) cls.push(floats(species) ? 'is-float' : 'is-anim');
   if (o.silhouette) cls.push('is-silhouette');
   if (o.className) cls.push(o.className);
   const delay = o.anim ? ` style="animation-delay:-${(Math.random() * 3).toFixed(2)}s"` : '';
-  return `<img class="${cls.join(' ')}" src="${url}" alt="${o.title || species.nombre}" draggable="false"${delay}${extra}>`;
+  const img = `<img class="${cls.join(' ')}" src="${url}" alt="${o.title || species.nombre}" draggable="false"${delay}${extra}>`;
+  if (!strip) return img;
+  const dur = Math.min(1.9, Math.max(0.8, 0.75 + 0.05 * (species.longitudM || 4))) * (o.stage === 'cria' ? 0.7 : 1);
+  return `<span class="dino-walk" style="--n:${o.frames};--dur:${dur.toFixed(2)}s">${img}</span>`;
 }
 
 /**
@@ -65,6 +72,9 @@ export function dinoArt(species, genes, opts = {}) {
   const fallback = opts.className ? svg.replace('class="dino-svg', `class="${opts.className} dino-svg`) : svg;
   if (typeof document === 'undefined' || !is3DOn() || lib === false) return fallback;
   const o = { ...opts, size: opts.size || 'md' };
+  // walk: tira de cuadros caminando (parque). Los que flotan o duermen, no.
+  if (o.walk && !o.sleeping && !floats(species)) { o.frames = WALK_FRAMES; o.size = 'wk'; }
+  delete o.walk;
   if (lib && !o.viewer) {
     const url = lib.cachedSprite(lib.spriteKey(species, genes || null, o));
     if (url) return imgTag(url, species, o);
@@ -119,8 +129,9 @@ function hydrateOne(el) {
     }
     const tmp = document.createElement('div');
     tmp.innerHTML = imgTag(url, species, opts);
-    const img = tmp.firstChild;
-    const swap = () => { if (el.isConnected) el.replaceWith(img); };
+    const node = tmp.firstChild;
+    const img = node.tagName === 'IMG' ? node : node.querySelector('img');
+    const swap = () => { if (el.isConnected) el.replaceWith(node); };
     if (img.decode) img.decode().then(swap, swap); else swap();
   }).catch(() => { /* se queda el dibujo SVG */ });
 }

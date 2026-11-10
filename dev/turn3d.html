@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giro 3D</title>
+<style>
+  body { margin: 0; padding: 8px; background: #e9efe6; font: 13px system-ui, sans-serif; }
+  #g { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  figure { margin: 0; background: #f6f8f3; border-radius: 10px; padding: 4px; text-align: center; }
+  figure img { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+<div id="g"></div>
+<script type="module">
+// Herramienta de desarrollo: cada especie desde varios ángulos.
+// ?only=a,b  &az=24,65,90,-150  &size=lg  &stage=  &mood=  &wild=1
+import { SPECIES } from '../js/data/species.js';
+import { renderSprite } from '../js/render3d/index.js';
+import { defaultGenes } from '../js/render/dino-svg.js';
+import { breedLikeGenes } from './gallery-genes.js';
+const q = new URLSearchParams(location.search);
+const only = q.get('only') ? q.get('only').split(',') : ['tyrannosaurus'];
+const azs = (q.get('az') || '24,65,90,-150').split(',').map(Number);
+const walks = q.get('walks') ? q.get('walks').split(',').map(Number) : [q.get('walk') != null ? Number(q.get('walk')) : undefined];
+const g = document.getElementById('g');
+g.style.gridTemplateColumns = `repeat(${q.get('cols') || azs.length * walks.length},1fr)`;
+const list = only.map((id) => SPECIES.find((s) => s.id === id)).filter(Boolean);
+let done = 0;
+const t0 = performance.now();
+const total = list.length * azs.length * walks.length;
+list.forEach((sp, i) => {
+  const genes = q.get('wild') ? breedLikeGenes(sp, i) : defaultGenes(sp);
+  for (const az of azs) for (const walk of walks) {
+    const fig = document.createElement('figure');
+    fig.innerHTML = `<div class="v"></div><figcaption>${sp.nombre} · ${az}°</figcaption>`;
+    g.appendChild(fig);
+    const opts = { stage: q.get('stage') || 'adulto', mood: q.get('mood') || '', size: q.get('size') || 'md', persist: false, az, el: Number(q.get('el') || 11), jaw: Number(q.get('jaw') || 0), walk };
+    renderSprite(sp, genes, opts).then((url) => {
+      fig.querySelector('.v').innerHTML = `<img src="${url}" alt="">`;
+    }).catch((e) => { fig.querySelector('.v').textContent = 'Error: ' + e.message; console.error(e); })
+      .finally(() => { done += 1; if (done === total) document.title = `listo ${Math.round(performance.now() - t0)}ms`; });
+  }
+});
+</script>
+</body>
+</html>
