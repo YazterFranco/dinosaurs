@@ -1,0 +1,18 @@
+{
+  "name": "Dino Refugio",
+  "short_name": "Dino Refugio",
+  "description": "Excava fósiles reales, recupera su ADN, incuba huevos y cría dinosaurios mientras aprendes cómo vivieron.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#e4eae2",
+  "theme_color": "#1d4a36",
+  "categories": ["games", "education", "kids"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

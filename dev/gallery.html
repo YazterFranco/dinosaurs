@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>Galería</title>
+<style>body{font-family:sans-serif;background:#f4ecd6;margin:8px}.g{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.c{background:#fffaf0;border-radius:8px;padding:4px;font-size:11px;text-align:center}svg{width:100%;height:auto;display:block}</style>
+<div class="g" id="g"></div>
+<script type="module">
+import { SPECIES } from '../js/data/species.js';
+import { dinoSVG } from '../js/render/dino-svg.js';
+import { wildGenes } from '../js/systems/genetics.js';
+const stage = new URLSearchParams(location.search).get('stage') || 'adulto';
+const q = new URLSearchParams(location.search);
+const wild = q.get('wild');
+const mood = q.get('mood') || '';
+const accs = ['', 'sombrero', 'corona', 'gafas', 'mono', 'gorro_fiesta', 'casco_minero', 'flor', 'bufanda', 'corona_ambar'];
+const only = q.get('only') ? q.get('only').split(',') : null;
+if (q.get('cols')) document.getElementById('g').style.gridTemplateColumns = `repeat(${q.get('cols')},1fr)`;
+document.getElementById('g').innerHTML = SPECIES.filter(s => !only || only.includes(s.id)).map(s => `<div class="c">${dinoSVG(s, wild ? wildGenes(s, 80) : null, {stage, mood, accesorio: q.get('acc') ? accs[SPECIES.indexOf(s) % accs.length] : ''})}${s.nombre}</div>`).join('');
+</script>

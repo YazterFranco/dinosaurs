@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galería 3D</title>
+<style>
+  body { margin: 0; padding: 8px; background: #f3ecd9; font: 13px system-ui, sans-serif; }
+  #g { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  figure { margin: 0; background: #fffaf0; border-radius: 10px; padding: 6px; text-align: center; }
+  figure img, figure canvas { width: 100%; height: auto; display: block; }
+  .v { width: 100%; }
+</style>
+</head>
+<body>
+<div id="g"></div>
+<script type="module">
+import { SPECIES } from '../js/data/species.js';
+import { renderSprite, mountViewer } from '../js/render3d/index.js';
+import { ACCESSORY_IDS } from '../js/data/cosmetics.js';
+import { breedLikeGenes } from './gallery-genes.js';
+const q = new URLSearchParams(location.search);
+const only = q.get('only') ? q.get('only').split(',') : null;
+if (q.get('cols')) document.getElementById('g').style.gridTemplateColumns = `repeat(${q.get('cols')},1fr)`;
+const list = SPECIES.filter((s) => !only || only.includes(s.id));
+const g = document.getElementById('g');
+const t0 = performance.now();
+let done = 0;
+for (const [i, sp] of list.entries()) {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<div class="v"></div><figcaption>${sp.nombre}</figcaption>`;
+  g.appendChild(fig);
+  const genes = q.get('wild') ? breedLikeGenes(sp, i) : null;
+  const opts = { stage: q.get('stage') || 'adulto', mood: q.get('mood') || '', accesorio: q.get('acc') ? ACCESSORY_IDS[i % ACCESSORY_IDS.length] : '', silhouette: !!q.get('sil'), sleeping: !!q.get('sleep'), size: q.get('size') || 'md', persist: false };
+  if (q.get('viewer')) {
+    mountViewer(fig.querySelector('.v'), sp, genes || (await import('../js/render/dino-svg.js')).defaultGenes(sp), { ...opts, still: !!q.get('still'), yaw: Number(q.get('yaw') || 0) });
+    done += 1;
+  } else {
+    renderSprite(sp, genes || (await import('../js/render/dino-svg.js')).defaultGenes(sp), opts).then((url) => {
+      fig.querySelector('.v').innerHTML = `<img src="${url}" alt="">`;
+      done += 1;
+      if (done === list.length) document.title = `listo ${Math.round(performance.now() - t0)}ms`;
+    }).catch((e) => { fig.querySelector('.v').textContent = 'Error: ' + e.message; console.error(e); });
+  }
+}
+if (q.get('viewer')) setTimeout(() => { document.title = 'listo'; }, 1500);
+</script>
+</body>
+</html>

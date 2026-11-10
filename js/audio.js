@@ -1,0 +1,90 @@
+// Efectos de sonido sintetizados con Web Audio (sin archivos externos).
+let ctx = null;
+let enabled = true;
+
+export function setSound(on) { enabled = on; }
+
+function ac() {
+  if (!enabled) return null;
+  try {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  } catch {
+    return null;
+  }
+}
+
+function tone(freq, dur, type = 'sine', vol = 0.15, when = 0, slideTo = null) {
+  const a = ac();
+  if (!a) return;
+  const t = a.currentTime + when;
+  const o = a.createOscillator();
+  const g = a.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t);
+  o.stop(t + dur + 0.05);
+}
+
+function noise(dur, vol = 0.2, filterFreq = 800, when = 0) {
+  const a = ac();
+  if (!a) return;
+  const t = a.currentTime + when;
+  const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  const f = a.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = filterFreq;
+  const g = a.createGain();
+  g.gain.value = vol;
+  src.connect(f).connect(g).connect(a.destination);
+  src.start(t);
+}
+
+const vibrate = (p) => {
+  try { if (enabled && navigator.vibrate) navigator.vibrate(p); } catch { /* sin vibración */ }
+};
+
+export const sfx = {
+  tap: () => tone(660, 0.06, 'triangle', 0.08),
+  ok: () => { tone(523, 0.1, 'triangle', 0.12); tone(784, 0.14, 'triangle', 0.12, 0.08); },
+  no: () => tone(220, 0.18, 'square', 0.06, 0, 160),
+  coin: () => { tone(988, 0.07, 'square', 0.06); tone(1318, 0.12, 'square', 0.06, 0.06); },
+  dig: () => noise(0.12, 0.25, 900),
+  brush: () => noise(0.18, 0.1, 2500),
+  bone: () => { tone(392, 0.1, 'triangle', 0.12); tone(523, 0.1, 'triangle', 0.12, 0.08); tone(659, 0.2, 'triangle', 0.12, 0.16); },
+  hatch: () => { vibrate([20, 40, 20]); noise(0.08, 0.2, 3000); tone(1200, 0.08, 'sine', 0.1, 0.12, 1800); tone(1400, 0.1, 'sine', 0.1, 0.24, 2000); },
+  roar: (big = true) => {
+    tone(big ? 110 : 330, 0.6, 'sawtooth', 0.12, 0, big ? 60 : 180);
+    noise(0.5, 0.18, big ? 400 : 1500);
+  },
+  /** Voz según el tamaño: grave y larga en los gigantes, aguda en los pequeños. */
+  voice: (meters = 4, baby = false) => {
+    const m = baby ? Math.min(1.2, meters * 0.25) : meters;
+    if (m < 2.5) {
+      const f = 1500 - m * 260;
+      tone(f, 0.09, 'sine', 0.09, 0, f * 1.45); tone(f * 1.1, 0.08, 'sine', 0.09, 0.11, f * 1.6); tone(f * 0.95, 0.12, 'triangle', 0.07, 0.22, f * 1.3);
+      return;
+    }
+    const f = Math.max(46, 190 - m * 9);
+    const dur = Math.min(1.3, 0.55 + m * 0.045);
+    vibrate([30, 20, 60]);
+    tone(f, dur, 'sawtooth', 0.11, 0, f * 0.55);
+    tone(f * 1.5, dur * 0.8, 'square', 0.035, 0.03, f * 0.8);
+    tone(f * 0.5, dur, 'sine', 0.12, 0, f * 0.3);
+    noise(dur * 0.9, 0.2, 320 + 1400 / m);
+  },
+  chirp: () => { tone(1500, 0.06, 'sine', 0.08, 0, 2200); tone(1700, 0.06, 'sine', 0.08, 0.08, 2400); },
+  level: () => (vibrate([20, 30, 20, 30, 40]), [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.12, i * 0.1))),
+  chest: () => { vibrate([30, 30, 60]); noise(0.25, 0.2, 600); [392, 523, 659, 784, 1046].forEach((f, i) => tone(f, 0.12, 'square', 0.05, 0.2 + i * 0.06)); },
+  collect: () => { vibrate(10); tone(880, 0.06, 'triangle', 0.1); tone(1320, 0.1, 'triangle', 0.1, 0.05); },
+};

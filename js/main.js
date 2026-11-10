@@ -1,0 +1,256 @@
+// Arranque, rutas, bucle de juego y HUD.
+import * as G from './systems/game.js';
+import { checkProgress, currentMission } from './systems/missions.js';
+import { load, save } from './store.js';
+import { sfx, setSound } from './audio.js';
+import { toast, fmt, runSheetTick, sheetOpen, closeSheet } from './ui/dom.js';
+import { XP_LEVELS, MAX_LEVEL } from './data/world.js';
+import { SPECIES_BY_ID } from './data/species.js';
+import * as R from './systems/rewards.js';
+import * as rewardsView from './ui/views/rewards.js';
+import { dailySheet, levelUpSheet, fmtLong } from './ui/views/rewards.js';
+
+import * as starterView from './ui/views/starter.js';
+import * as parkView from './ui/views/park.js';
+import * as nurseryView from './ui/views/nursery.js';
+import * as excavateView from './ui/views/excavate.js';
+import * as dinopediaView from './ui/views/dinopedia.js';
+import * as moreView from './ui/views/more.js';
+import * as quizView from './ui/views/quiz.js';
+import * as contestView from './ui/views/contest.js';
+import * as expeditionView from './ui/views/expedition.js';
+import { openDinoSheet } from './ui/views/dino-sheet.js';
+import { setupInstall } from './ui/install.js';
+import { start3D } from './render/art.js';
+
+const ROUTES = {
+  inicio: starterView,
+  parque: parkView,
+  criadero: nurseryView,
+  excavar: excavateView,
+  dinopedia: dinopediaView,
+  mas: moreView,
+  misiones: moreView,
+  tienda: moreView,
+  hallazgos: moreView,
+  diario: moreView,
+  ajustes: moreView,
+  quiz: quizView,
+  concursos: contestView,
+  expedicion: expeditionView,
+  recompensas: rewardsView,
+};
+const TAB_OF = {
+  parque: 'parque', criadero: 'criadero', excavar: 'excavar', dinopedia: 'dinopedia',
+  mas: 'mas', misiones: 'mas', tienda: 'mas', hallazgos: 'mas', diario: 'mas', ajustes: 'mas', quiz: 'mas', concursos: 'mas', expedicion: 'mas', recompensas: 'parque',
+};
+
+const viewEl = document.getElementById('view');
+let state = load() || G.createGame();
+let current = { name: null, params: [], view: null };
+let saveTimer = null;
+let lastLevel = state.nivel;
+let lastCoins = state.monedas;
+
+const app = {
+  get state() { return state; },
+  set state(s) { state = s; },
+  sfx,
+  go(route) {
+    if (location.hash === `#/${route}`) app.refresh();
+    else location.hash = `#/${route}`;
+  },
+  refresh() {
+    if (!current.view) return;
+    const y = window.scrollY;
+    current.view.render(viewEl, current.params, app, current.name);
+    window.scrollTo(0, y);
+    updateHud();
+  },
+  /** Ejecuta una acción del juego, avisa del resultado y guarda. */
+  do(fn, opts = {}) {
+    let r;
+    try {
+      r = fn(state);
+    } catch (err) {
+      console.error(err);
+      toast('Algo salió mal con esa acción. Inténtalo de nuevo.', 'bad');
+      return null;
+    }
+    if (r && r.msg && opts.toast !== false) toast(r.msg, r.ok ? 'good' : 'bad', opts.icon || (r.ok ? '' : '⚠️'));
+    if (r && opts.sound !== false) (r.ok ? (opts.sfx || sfx.ok) : sfx.no)();
+    after();
+    if (opts.render !== false) app.refresh();
+    return r;
+  },
+  after,
+  openDino(id) { openDinoSheet(app, id); },
+  save: () => persist(true),
+  reset(newState) {
+    state = newState;
+    lastLevel = state.nivel;
+    lastCoins = state.monedas;
+    setSound(state.ajustes.sonido);
+    persist(true);
+    closeSheet();
+    app.go(state.iniciado ? 'parque' : 'inicio');
+  },
+};
+window.__dinoApp = app; // útil para depurar y para las pruebas E2E
+
+function after() {
+  const done = checkProgress(state);
+  for (const d of done) {
+    if (d.tipo === 'mision') toast(`Misión cumplida: ${d.titulo} (+${d.premio} monedas)`, 'gold', '✅');
+    else toast(`¡Logro! ${d.titulo}`, 'gold', d.icono);
+  }
+  if (done.length) sfx.coin();
+  if (state.nivel > lastLevel) {
+    let info = null;
+    for (let l = lastLevel + 1; l <= state.nivel; l += 1) info = R.levelUpRewards(state, l);
+    lastLevel = state.nivel;
+    const lvl = state.nivel;
+    // Espera a que se cierre lo que esté abierto para celebrar.
+    const show = () => (sheetOpen() ? setTimeout(show, 800) : levelUpSheet(app, lvl, info));
+    setTimeout(show, 400);
+  }
+  updateHud();
+  persist();
+}
+
+function persist(now = false) {
+  clearTimeout(saveTimer);
+  if (now) save(state);
+  else saveTimer = setTimeout(() => save(state), 800);
+}
+
+// ---------- HUD ----------
+function updateHud() {
+  const coins = document.querySelector('[data-bind="monedas"]');
+  coins.textContent = `🪙 ${fmt(state.monedas)}`;
+  if (state.monedas > lastCoins) {
+    coins.classList.remove('bump');
+    void coins.offsetWidth;
+    coins.classList.add('bump');
+  }
+  lastCoins = state.monedas;
+  const en = R.energy(state);
+  const ep = document.querySelector('[data-bind="energia"]');
+  ep.textContent = `⚡ ${en.valor}/${en.max}`;
+  ep.title = en.valor >= en.max ? 'Energía de expedición llena' : `Energía de expedición: +1 en ${fmtLong(en.proxima)}`;
+  const lvl = document.querySelector('[data-bind="nivel"]');
+  const lo = XP_LEVELS[state.nivel - 1];
+  const hi = XP_LEVELS[state.nivel] ?? lo;
+  const p = state.nivel >= MAX_LEVEL ? 100 : ((state.xp - lo) / (hi - lo)) * 100;
+  lvl.style.setProperty('--p', p.toFixed(1));
+  lvl.innerHTML = `<span>${state.nivel}</span>`;
+  lvl.setAttribute('aria-label', `Nivel ${state.nivel}, ${Math.round(p)} % hacia el siguiente`);
+
+  const ready = state.huevos.filter((e) => e.progreso >= e.duracion || e.girar).length;
+  const bc = document.querySelector('[data-bind="badgeCriadero"]');
+  bc.hidden = !ready;
+  bc.textContent = ready;
+  const pend = R.pendingCount(state);
+  const bp = document.querySelector('[data-bind="badgeParque"]');
+  bp.hidden = !pend;
+  bp.textContent = pend;
+  const m = currentMission(state);
+  const bm = document.querySelector('[data-bind="badgeMas"]');
+  bm.hidden = !(m && m.check(state));
+  bm.textContent = '!';
+}
+
+// ---------- Rutas ----------
+function route() {
+  const raw = location.hash.replace(/^#\/?/, '');
+  if (raw === 'view') { viewEl.focus(); return; } // enlace "Saltar al contenido"
+  let [name, ...params] = raw.split('/').filter(Boolean).map(decodeURIComponent);
+  if (!state.iniciado) name = 'inicio';
+  else if (!name || !ROUTES[name] || name === 'inicio') name = 'parque';
+  const view = ROUTES[name];
+  if (current.view && current.view.leave) current.view.leave();
+  if (sheetOpen()) closeSheet();
+  current = { name, params, view };
+  document.getElementById('hud').hidden = name === 'inicio';
+  document.getElementById('tabbar').hidden = name === 'inicio';
+  document.querySelectorAll('.tabbar a').forEach((a) => {
+    if (a.dataset.tab === TAB_OF[name]) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  view.render(viewEl, params, app, name);
+  window.scrollTo(0, 0);
+  viewEl.focus({ preventScroll: true });
+  updateHud();
+}
+
+// ---------- Bucle ----------
+function loop() {
+  const now = Date.now();
+  const dt = Math.min(5, Math.max(0, (now - state.ultimo) / 1000));
+  state.ultimo = now;
+  if (!state.iniciado || dt <= 0) return;
+  const events = G.tick(state, dt);
+  for (const ev of events) handleEvent(ev);
+  if (events.length) after();
+  else updateHud();
+  if (current.view && current.view.tick) current.view.tick(app, events);
+  runSheetTick();
+  persist();
+}
+
+function handleEvent(ev) {
+  const d = ev.dino && state.dinos.find((x) => x.id === ev.dino);
+  if (ev.tipo === 'huevoListo') {
+    const e = state.huevos.find((x) => x.id === ev.huevo);
+    const sp = e && SPECIES_BY_ID[e.especie];
+    toast(`¡Un huevo de ${sp ? sp.corto || sp.nombre : 'dinosaurio'} se está moviendo! Ve al Criadero.`, 'gold', '🥚');
+    sfx.chirp();
+  } else if (ev.tipo === 'crece' && d) {
+    toast(ev.stage === 'adulto' ? `${d.nombre} ya es adulto.` : `${d.nombre} creció: ahora es juvenil.`, 'good', '🌱');
+    sfx.roar(ev.stage === 'adulto');
+  } else if (ev.tipo === 'taquillaLlena') {
+    toast('¡La taquilla está llena! Cóbrala en el Parque para que los visitantes sigan pagando.', 'gold', '🎟️');
+  } else if (ev.tipo === 'clinica' && d) {
+    toast(`${d.nombre} se enfermó y está en la clínica. Págale el tratamiento.`, 'bad', '🏥');
+  }
+}
+
+window.addEventListener('hashchange', route);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) persist(true);
+  else {
+    G.catchUp(state);
+    after();
+    maybeDaily();
+  }
+});
+window.addEventListener('pagehide', () => persist(true));
+
+// ---------- Inicio ----------
+setSound(state.ajustes.sonido);
+function maybeDaily() {
+  if (!state.iniciado || state.dinos.length === 0) return;
+  if (R.dailyStatus(state).disponible && !sheetOpen()) setTimeout(() => { if (!sheetOpen()) dailySheet(app); }, 700);
+}
+
+if (state.iniciado) {
+  const before = state.recompensas.taquilla;
+  G.catchUp(state);
+  const gained = Math.floor(state.recompensas.taquilla - before);
+  if (gained > 0) setTimeout(() => toast(`¡Bienvenido de vuelta! Hay ${fmt(gained)} monedas nuevas en la taquilla.`, 'gold', '🎟️'), 600);
+  maybeDaily();
+} else {
+  state.ultimo = Date.now();
+}
+route();
+setInterval(loop, 1000);
+
+// Instalación como app y juego sin conexión.
+setupInstall();
+// Dinosaurios en 3D (con el dibujo plano como respaldo).
+start3D();
+// El visor 3D avisa cuando el dinosaurio ruge: aquí se le pone la voz.
+document.addEventListener('dino-roar', (e) => { sfx.voice(e.detail.species.longitudM, e.detail.stage === 'cria'); });
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo sin conexión */ }));
+}
