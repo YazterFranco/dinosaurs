@@ -149,6 +149,7 @@ uniform sampler2D uMap; uniform float uUseMap;
 uniform sampler2D uBump; uniform float uBumpScale; uniform vec2 uBumpRep, uBumpRep2;
 uniform vec3 uBumpMix; uniform float uMacro, uCav, uRing;
 uniform sampler2D uStrand; uniform float uShellT; uniform vec2 uStrandRep;
+uniform float uFeath; uniform vec2 uFeathRep;
 uniform sampler2DShadow uShadow; uniform float uUseShadow;
 uniform vec3 uCam, uKeyDir, uKeyCol, uRimDir, uRimCol, uSky, uGround;
 uniform float uRough, uSpec, uSSS, uTrans, uMetal, uEmis, uIrid, uExposure, uFlat;
@@ -196,10 +197,19 @@ void main(){
   if (abs(ax.y) + abs(ay.y) < abs(gdx.y) + abs(gdy.y)) { gdx = ax; gdy = ay; }
   vec3 base = uColor * vCol.rgb;
   if (uUseMap > 0.5) base *= textureGrad(uMap, vUv, gdx, gdy).rgb;
+  if (uFeath > 0.0) {
+    // Plumas de contorno: hileras solapadas como tejas, con el raquis claro.
+    vec2 q = vUv*uFeathRep;
+    float e = abs(fract(q.y) - 0.5)*2.0;
+    float jit = fract(sin(floor(q.y)*91.7)*43758.5);
+    float f = fract(q.x + 0.5*mod(floor(q.y), 2.0) + jit*0.35 - e*e*0.3);
+    float sh = mix(0.7, 1.1, smoothstep(0.0, 0.8, f)) + 0.07*(1.0 - smoothstep(0.0, 0.16, e)) - 0.1*smoothstep(0.75, 1.0, e);
+    base *= mix(1.0, sh, uFeath);
+  }
   if (uShellT > 0.0) {
     float s = textureGrad(uStrand, vUv*uStrandRep, gdx*uStrandRep, gdy*uStrandRep).r;
     if (s < uShellT || vFur < 0.04) discard;
-    base *= mix(0.62, 1.1, uShellT);
+    base *= mix(0.7, 1.08, uShellT);
   }
   vec3 N = normalize(vNormal);
   if (!gl_FrontFacing) N = -N;
@@ -321,7 +331,9 @@ const MATS = {
   frill: { color: 'acento', rough: 0.6, spec: 0.4, sss: 0.45, trans: 0.12, bump: [0.5, 0.4, 0.6], cav: 0.2, rep: [5, 4], double: true },
   plate: { color: 'acento', rough: 0.45, spec: 0.5, sss: 0.5, trans: 0.55, bump: [0.1, 0.25, 0.6], cav: 0.1, rep: [3, 3] },
   membrane: { color: 'acento', rough: 0.55, spec: 0.35, sss: 0.55, trans: 0.95, bump: [0, 0.1, 0.5], cav: 0.06, rep: [6, 3], double: true },
-  feather: { color: 'acento', rough: 0.8, spec: 0.2, sss: 0.3, double: true },
+  feather: { color: 'pluma', rough: 0.7, spec: 0.3, sss: 0.3, double: true },
+  limbFeather: { color: 'piel', rough: 0.72, spec: 0.3, sss: 0.4, bump: [0.06, 0, 0.03], cav: 0.03, rep: 'limb', feath: 1 },
+  limbFeatherFar: { color: 'pielFar', rough: 0.72, spec: 0.28, sss: 0.4, bump: [0.06, 0, 0.03], cav: 0.03, rep: 'limb', feath: 1 },
   wing: { color: 'piel', rough: 0.75, spec: 0.25, sss: 0.35, trans: 0.2, double: true },
   keratin: { color: '#ddd0b6', rough: 0.3, spec: 0.8, sss: 0.15 },
   claw: { color: '#5d4f40', rough: 0.28, spec: 0.9, sss: 0.05 },
@@ -360,8 +372,8 @@ export function createRenderer(canvas, opts = {}) {
   const bumpTex = makeTex(gl, skinDetail(256), { srgb: false });
   const strandTex = makeTex(gl, strandNoise(64), { srgb: false, mip: false });
   gl.bindTexture(gl.TEXTURE_2D, strandTex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
   // Mapa de sombras
   const SM = opts.shadowSize || 1024;
@@ -395,6 +407,8 @@ export function createRenderer(canvas, opts = {}) {
       piel: natural(cssToRgb(c.piel)), sombra: natural(cssToRgb(c.sombra), 0.6, 0.9), acento: natural(cssToRgb(c.acento), 0.86, 0.98),
     };
     rgb.pielFar = rgb.piel.map((v, i) => v * 0.82 + rgb.sombra[i] * 0.18);
+    // Plumas de vuelo: más oscuras que el cuerpo, con un toque del color de acento.
+    rgb.pluma = rgb.piel.map((v, i) => v * 0.42 + rgb.acento[i] * 0.3 + rgb.sombra[i] * 0.12);
     const info = model.info;
     const tex = {
       body: makeTex(gl, bodyTexture(model, { countershade: !!model.countershade, w: 512 * ts, h: 256 * ts }), { wrapU: gl.CLAMP_TO_EDGE }),
@@ -472,7 +486,9 @@ export function createRenderer(canvas, opts = {}) {
       if (p.lid) continue;
       for (let i = 0; i < p.mesh.pos.length; i += 12) sample.push([p.mesh.pos[i], p.mesh.pos[i + 1], p.mesh.pos[i + 2]]);
     }
-    return { draws, tex, info, anim: model.anim, sample, bounds: info.bounds, silColor: [59, 58, 53], irid: model.iridescent ? 0.55 : 0 };
+    const featRep = [lastBody.s / (0.3 * tile), Math.max(8, Math.round(avgGirth / (0.14 * tile)))];
+    const strandRep = [lastBody.s / (3.4 * tile), Math.max(6, Math.round(avgGirth / (0.5 * tile)))];
+    return { draws, tex, info, featRep, strandRep, anim: model.anim, sample, bounds: info.bounds, silColor: [59, 58, 53], irid: model.iridescent ? 0.55 : 0 };
   }
 
   function dispose(scene) {
@@ -554,8 +570,12 @@ export function createRenderer(canvas, opts = {}) {
       gl.bindTexture(gl.TEXTURE_2D, scene.tex[m.map]);
       gl.uniform1i(u.uMap, 0);
     }
+    const furry = d.part.shells && !a.silhouette && a.shells !== false;
+    const fe = m.feath || (furry && d.part.mat === 'body' ? 0.85 : 0);
     gl.uniform1f(u.uBumpScale, m.bump ? (a.bumpScale ?? 1) : 0);
-    gl.uniform3fv(u.uBumpMix, m.bump || [0, 0, 0]);
+    gl.uniform3fv(u.uBumpMix, furry && m.bump ? m.bump.map((v, i) => v * (i === 2 ? 0.5 : 0.15)) : m.bump || [0, 0, 0]);
+    gl.uniform1f(u.uFeath, fe);
+    if (fe) gl.uniform2fv(u.uFeathRep, m.feath ? [3.4, 7] : scene.featRep);
     gl.uniform1f(u.uMacro, m.map && m.macro ? m.macro : 0);
     gl.uniform1f(u.uCav, m.cav || 0);
     gl.uniform1f(u.uRing, m.ring || 0);
@@ -578,13 +598,13 @@ export function createRenderer(canvas, opts = {}) {
       gl.activeTexture(gl.TEXTURE2);
       gl.bindTexture(gl.TEXTURE_2D, strandTex);
       gl.uniform1i(u.uStrand, 2);
-      gl.uniform2fv(u.uStrandRep, d.part.mat === 'head' ? [26, 30] : [Math.max(40, scene.info.bodyMap[scene.info.bodyMap.length - 1].s / 1.1), 26]);
-      gl.uniform3fv(u.uShellDir, norm3([-1, -0.35, 0]).map((v) => v / Math.max(0.5, len)));
+      gl.uniform2fv(u.uStrandRep, d.part.mat === 'head' ? [5, 9] : scene.strandRep);
+      gl.uniform3fv(u.uShellDir, norm3([-1, -0.3, 0]).map((v) => (v * 2.2) / Math.max(0.5, len)));
       gl.uniform1f(u.uBumpScale, 0);
       for (let i = 1; i <= count; i += 1) {
         const t = i / count;
         gl.uniform1f(u.uShell, len * t);
-        gl.uniform1f(u.uShellT, 0.18 + t * 0.78);
+        gl.uniform1f(u.uShellT, 0.12 + t * 0.8);
         gl.drawElements(gl.TRIANGLES, d.count, gl.UNSIGNED_INT, 0);
       }
       gl.uniform1f(u.uShell, 0);

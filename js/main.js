@@ -18,6 +18,7 @@ import * as dinopediaView from './ui/views/dinopedia.js';
 import * as moreView from './ui/views/more.js';
 import * as quizView from './ui/views/quiz.js';
 import * as contestView from './ui/views/contest.js';
+import * as expeditionView from './ui/views/expedition.js';
 import { openDinoSheet } from './ui/views/dino-sheet.js';
 import { setupInstall } from './ui/install.js';
 import { start3D } from './render/art.js';
@@ -36,11 +37,12 @@ const ROUTES = {
   ajustes: moreView,
   quiz: quizView,
   concursos: contestView,
+  expedicion: expeditionView,
   recompensas: rewardsView,
 };
 const TAB_OF = {
   parque: 'parque', criadero: 'criadero', excavar: 'excavar', dinopedia: 'dinopedia',
-  mas: 'mas', misiones: 'mas', tienda: 'mas', hallazgos: 'mas', diario: 'mas', ajustes: 'mas', quiz: 'mas', concursos: 'mas', recompensas: 'parque',
+  mas: 'mas', misiones: 'mas', tienda: 'mas', hallazgos: 'mas', diario: 'mas', ajustes: 'mas', quiz: 'mas', concursos: 'mas', expedicion: 'mas', recompensas: 'parque',
 };
 
 const viewEl = document.getElementById('view');

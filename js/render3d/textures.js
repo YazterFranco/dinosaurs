@@ -121,7 +121,13 @@ function makeStrandNoise(size, seed) {
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      const v = Math.pow(hash(x, y, seed), 0.8);
+      // Barbas de pluma: trazos alargados a lo largo del cuerpo, que nacen
+      // desfasados en cada fila y se afinan hacia la punta.
+      const row = y >> 1;
+      const off = Math.floor(hash(row, 3, seed) * 4);
+      const cell = (x + off) >> 2;
+      const fx = ((x + off) & 3) / 3;
+      const v = Math.pow(hash(cell, row, seed), 0.8) * (1 - 0.3 * fx);
       const o = (y * size + x) * 4;
       const c = Math.round(v * 255);
       data[o] = c; data[o + 1] = c; data[o + 2] = c; data[o + 3] = 255;

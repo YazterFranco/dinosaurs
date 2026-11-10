@@ -38,7 +38,9 @@ en Más → Ajustes, se usa el dibujo vectorial.
 8. **Entrena** a tus adultos para los concursos (no se hereda: solo los genes
    pasan a las crías), compra accesorios y saca una **postal** de tus
    dinosaurios para compartirla.
-9. Completa la **Dinopedia**: cada ficha trae significado del nombre,
+9. Sal de **expedición**: supera obstáculos, enfrenta dinosaurios salvajes por
+   turnos o amánsalos con su comida favorita, y retírate a tiempo con el botín.
+10. Completa la **Dinopedia**: cada ficha trae significado del nombre,
    pronunciación, periodo, tamaño comparado con una persona, quién lo descubrió,
    datos curiosos y "mito vs. realidad".
 

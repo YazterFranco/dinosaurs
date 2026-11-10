@@ -214,6 +214,26 @@ Para el juego avanzado hay en qué gastar: entrenamiento y accesorios.
 - **Instalable y sin conexión (PWA):** manifiesto, íconos y service worker.
 - **Familia:** la ficha muestra padres y número de crías.
 
+## 3.14 Expediciones (aventura; amansar inspirado en *ARK*, encuentros en *Jurassic World*)
+
+Un juvenil o adulto sale a una zona (cada bioma) por 25 de energía. La salida
+tiene cinco etapas: obstáculo, salvaje, obstáculo, alfa y hallazgo final.
+
+- **Obstáculos** (río crecido, derrumbe, tormenta, helechos, lodo, ceniza): tres
+  opciones, cada una con una estadística distinta y su probabilidad a la vista
+  (`0,6 + (estadística − dificultad) / 80`, entre 12 % y 95 %; los primeros
+  niveles bajan la dificultad). Acertar da monedas y un dato real; fallar cuesta aguante.
+- **Salvajes**: *enfrentar* (duelo por turnos: Embestir › Rugir › Esquivar ›
+  Embestir, con daño según fuerza, tamaño o velocidad), *amansar* (dar comida del
+  inventario: la favorita 90 %, otra que coma 50 %, la que no come lo enfurece;
+  da más ADN que el duelo) o *rodear* (velocidad e intelecto, sin botín).
+- **Aguante** = 50 + 0,7 × vitalidad. **Retirarse** guarda todo el botín; llegar
+  a 0 pierde la mitad y el dinosaurio vuelve con menos salud y ánimo.
+- Botín: monedas, XP, ADN de las especies de la zona y comida.
+
+Lógica en `js/systems/expedition.js` (pura, con azar inyectable); pantalla en
+`js/ui/views/expedition.js`. La expedición en curso se guarda con la partida.
+
 ## 4. Dirección visual
 
 - **Concepto:** estación de campo en un bosque de helechos. Nada de "papel
@@ -348,6 +368,12 @@ en `js/render3d/`.
     los cocodrilos. Su patrón base ahora es moteado, con manchitas redondas.
 - **Herramienta:** `dev/gallery3d.html` muestra las 41 especies en 3D, con
   parámetros para etapa, ánimo, accesorio, silueta, sueño y visor.
+
+**Plumaje.** Los emplumados no usan escamas: el cuerpo, los muslos y los brazos
+llevan plumas de contorno solapadas como tejas (sombreado procedural), encima
+van capas cortas de barbas alargadas hacia la cola, las patas quedan escamosas
+solo del tobillo para abajo, y las plumas del ala y de la cola son hojas sueltas
+de un tono más oscuro que el cuerpo.
 
 ## 5. Referencias
 

@@ -28,8 +28,9 @@ function hub(el, app) {
   const nCurios = Object.values(s.inventario.curios).reduce((a, b) => a + b, 0);
   const items = [
     ['recompensas', '🎁', 'Recompensas', 'Racha, cofres, misiones de hoy y accesorios', R.pendingCount(s) > 0],
-    ['misiones', '🧭', 'Misiones y logros', m ? m.titulo : '¡Todas completas!', m && m.check(s)],
+    ['misiones', '📜', 'Misiones y logros', m ? m.titulo : '¡Todas completas!', m && m.check(s)],
     ['tienda', '🛒', 'Tienda', 'Comida, recintos y mejoras'],
+    ['expedicion', '🧭', 'Expediciones', s.expedicion ? '¡Hay una en marcha!' : 'Explora, enfrenta salvajes y amánsalos', !!s.expedicion],
     ['concursos', '🏆', 'Concursos', 'Carrera, fuerza, belleza, ingenio'],
     ['quiz', '🎓', 'Quiz', 'Gana monedas y ADN aprendiendo'],
     ['hallazgos', '🐚', 'Hallazgos', `${nCurios} objetos en tu vitrina`],

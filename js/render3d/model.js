@@ -197,7 +197,7 @@ export function buildModel(species, genes, opts = {}) {
   const top = [];
   const bot = [];
   const tailN = 8;
-  const bellyF = feat.potBelly ? 1.22 : 1;
+  const bellyF = feat.potBelly ? 1.1 : 1;
   for (let i = 0; i <= tailN; i += 1) {
     const t = i / tailN;
     const x = -rx * 0.8 - tailLen * (1 - t);
@@ -382,7 +382,7 @@ export function buildModel(species, genes, opts = {}) {
   });
   rings.push({ pts: Array.from({ length: K }, () => neckTip3.slice()), u: 1 });
   bodyMap.push({ u: 1, x: neckTip3[0], c: neckTip3[1], h: 0, girth: 0, s: total });
-  push(ringSurface(rings), 'body', { shells: fullFeathers || plan === 'flyer' ? { len: plan === 'flyer' ? 1.4 : 2.6 + rx * 0.02, count: 10 } : feathered ? { len: 1.8, count: 8 } : null });
+  push(ringSurface(rings), 'body', { shells: fullFeathers || plan === 'flyer' ? { len: plan === 'flyer' ? 1.2 : 1.5 + rx * 0.014, count: 9 } : feathered ? { len: 1.8, count: 8 } : null });
 
   // ---------- cabeza ----------
   const head = HEADS[look.head.type] || HEADS.slim;
@@ -483,7 +483,7 @@ export function buildModel(species, genes, opts = {}) {
   const lipTip = v3.lerp(last.pts[nU], last.pts[HK - nU], 0.5);
   hrings.push({ pts: last.pts.map(() => lipTip), u: 1, vs: last.vs, rig: last.rig });
   // En los emplumados la cabeza también lleva plumón corto, menos en el hocico.
-  push(ringSurface(hrings, { skip: [nU, nU + 2 * nL + 1] }), 'head', { shells: fullFeathers && !head.beak ? { len: 1.1, count: 6, range: [-1, -0.5, 0.42, 0.62] } : null });
+  push(ringSurface(hrings, { skip: [nU, nU + 2 * nL + 1] }), 'head', { shells: fullFeathers && !head.beak ? { len: 0.8, count: 6, range: [-1, -0.5, 0.42, 0.62] } : null });
 
   // Interior de la boca: paladar (fijo) y suelo (gira con la mandíbula). Con
   // la boca cerrada queda escondido dentro de la cabeza.
@@ -808,6 +808,7 @@ export function buildModel(species, genes, opts = {}) {
     const legSet = (side, stride) => {
       const isFar = side < 0;
       const m = isFar ? 'limbFar' : 'limb';
+      const mf = feathered ? (isFar ? 'limbFeatherFar' : 'limbFeather') : m;
       const h = [hip[0] + stride, hip[1]];
       const L = -h[1];
       const zh = zHip(h[0], -h[1] + ry * 0.2);
@@ -818,10 +819,10 @@ export function buildModel(species, genes, opts = {}) {
       const thighTop = [h[0] - ry * 0.12, h[1] - ry * 0.5];
       legNow = newLeg(h, knee, ankle, isFar ? Math.PI : 0, 1);
       // Muslo: nace dentro del cuerpo y baja hasta la rodilla.
-      limbTube([P3([thighTop[0], thighTop[1] + ry * 0.15], zh * 0.25 * side), P3([h[0] - ry * 0.02, h[1] - ry * 0.05], zh * 0.62 * side), P3([h[0] + L * 0.06, h[1] + L * 0.17], zh * 0.9 * side), P3(knee, zK * side)], [ry * 0.32, ry * 0.52, ry * 0.44, legW * 0.6], m, [0.72, 1], [0, 1]);
+      limbTube([P3([thighTop[0], thighTop[1] + ry * 0.15], zh * 0.25 * side), P3([h[0] - ry * 0.02, h[1] - ry * 0.05], zh * 0.62 * side), P3([h[0] + L * 0.06, h[1] + L * 0.17], zh * 0.9 * side), P3(knee, zK * side)], [ry * 0.32, ry * 0.52, ry * 0.44, legW * 0.6], mf, [0.72, 1], [0, 1]);
       // Espinilla con la pantorrilla abultada hacia atrás.
       const calf = [lerp(knee[0], ankle[0], 0.3) - legW * 0.14, lerp(knee[1], ankle[1], 0.3)];
-      limbTube([P3(knee, zK * side), P3(calf, lerp(zK, zA, 0.3) * side), P3([lerp(knee[0], ankle[0], 0.7), lerp(knee[1], ankle[1], 0.7)], lerp(zK, zA, 0.7) * side), P3(ankle, zA * side)], [legW * 0.58, legW * 0.56, legW * 0.36, legW * 0.3], m, [0.82, 1], 2);
+      limbTube([P3(knee, zK * side), P3(calf, lerp(zK, zA, 0.3) * side), P3([lerp(knee[0], ankle[0], 0.7), lerp(knee[1], ankle[1], 0.7)], lerp(zK, zA, 0.7) * side), P3(ankle, zA * side)], [legW * 0.58, legW * 0.56, legW * 0.36, legW * 0.3], mf, [0.82, 1], 2);
       limbTube([P3(ankle, zA * side), P3(ball, zB * side)], [legW * 0.3, legW * 0.28], m, [0.85, 1], 3);
       // Primer dedo (espolón) detrás del metatarso
       claw(P3([ankle[0] + L * 0.02, ankle[1] + L * 0.06], (zA - 1) * side), [-0.4, -0.6, -0.2 * side], legW * 0.3, legW * 0.08, 0.6);
@@ -842,7 +843,7 @@ export function buildModel(species, genes, opts = {}) {
         const wrist = [elbow[0] + a * 0.42, elbow[1] + a * 0.12];
         const aw = Math.max(2.6, legW * 0.42) * (feat.tinyArms ? 0.9 : 1);
         const zE = zs * 1.08; const zW = zs * 0.95;
-        limbTube([P3([s0[0] - 1, s0[1] - ry * 0.1], zs * 0.6 * side), P3(s0, zs * side), P3(elbow, zE * side), P3(wrist, zW * side)], [aw * 0.8, aw * 0.7, aw * 0.5, aw * 0.36], isFar ? 'limbFar' : 'limb', [0.85, 1]);
+        limbTube([P3([s0[0] - 1, s0[1] - ry * 0.1], zs * 0.6 * side), P3(s0, zs * side), P3(elbow, zE * side), P3(wrist, zW * side)], [aw * 0.8, aw * 0.7, aw * 0.5, aw * 0.36], fullFeathers ? (isFar ? 'limbFeatherFar' : 'limbFeather') : isFar ? 'limbFar' : 'limb', [0.85, 1]);
         const nC = feat.tinyArms ? 2 : 3;
         for (let i = 0; i < nC; i += 1) {
           const big = feat.bigClaws;
@@ -857,7 +858,7 @@ export function buildModel(species, genes, opts = {}) {
         if (fullFeathers) {
           // Ala de plumas pennáceas: un abanico plano a lo largo del antebrazo y
           // la mano, con las plumas colgando hacia atrás y abajo.
-          const len = feat.wings ? a * 1.1 : a * 0.66;
+          const len = feat.wings ? a * 1.15 : a * 0.9;
           const E = P3(elbow, zE * side + 0.45 * side);
           const Wp = P3(wrist, zW * side + 0.45 * side);
           const hand = add(Wp, mul(sub(Wp, E), 0.5));
@@ -872,7 +873,7 @@ export function buildModel(species, genes, opts = {}) {
           for (let i = 0; i < n; i += 1) {
             const t = i / (n - 1);
             const base = add(add(E, mul(U, t * Lf)), mul(N, (i - n / 2) * 0.07 * side));
-            const an = rad(118 + 38 * t);
+            const an = rad(146 + 26 * t);
             const L2 = len * (0.5 + 0.5 * t);
             const D = norm([Math.cos(an), -Math.sin(an), 0]);
             let S = norm(cross(D, N));
@@ -1133,18 +1134,37 @@ export function buildModel(species, genes, opts = {}) {
     const fr = frond * (1 - 0.4 * baby);
     const n = tailN;
     const F = (i) => { const u = i / (n - 1); return u > frondSpan ? 0 : fr * (1 - u / frondSpan) ** 0.6; };
-    const left = []; const right = []; const mid = [];
-    for (let i = 0; i < n; i += 1) {
-      const c = spine[i];
-      const y = -c[1] + 0.4;
-      const hw = halfWidthAt(c[0], -c[1]) + F(i);
-      left.push([c[0], y, hw]); right.push([c[0], y, -hw]); mid.push([c[0], y, 0]);
+    // Plumas sueltas a los dos lados de la cola, echadas hacia la punta y
+    // solapadas, más una pluma central que la remata.
+    const tmat = feat.tailFan || feat.tailFeathers || feat.wings ? 'feather' : 'wing';
+    const at = (f) => { const k = Math.min(n - 1.001, Math.max(0, f)); const i0 = Math.floor(k); const u = k - i0; return [lerp(spine[i0][0], spine[i0 + 1][0], u), -lerp(spine[i0][1], spine[i0 + 1][1], u) + 0.3]; };
+    const blade = (base, D, S, L2, wv0, idx) => {
+      const rows = 4; const grid = [];
+      for (let r = 0; r <= rows; r += 1) {
+        const f = r / rows;
+        const wv = wv0 * (0.5 + 0.7 * Math.sin(Math.PI * Math.min(1, f * 0.7 + 0.1))) * (f > 0.8 ? (1 - f) / 0.2 * 0.75 + 0.25 : 1);
+        const c = add(base, mul(D, L2 * f));
+        grid.push([-1, 0, 1].map((e) => add(add(c, mul(S, e * wv * 0.5)), [0, -Math.abs(e) * 0.1, 0])));
+      }
+      push(sheet(grid, { color: (r, c2) => { const f = r / rows; const k = (c2 === 1 ? 1.12 : 0.9) * (1 - 0.3 * smoothstep(0.2, 0.6, Math.sin(f * 8 + idx * 0.6))) * (0.8 + 0.3 * f); return [k, k, k, 1]; } }), tmat, { double: true });
+    };
+    const span = frondSpan * (n - 1);
+    const cnt = Math.max(5, Math.round(span * 2.2));
+    for (let k = 0; k < cnt; k += 1) {
+      const f = (k + 0.3) / cnt * span;
+      const c = at(f); const c2 = at(f - 0.4);
+      const T = norm([c2[0] - c[0], c2[1] - c[1], 0]);
+      const L2 = 2 + fr * 1.35 * (1 - (f / span)) ** 0.5 + fr * 0.25;
+      for (const side of [1, -1]) {
+        const hw = halfWidthAt(c[0], -c[1] + 0.3) * 0.7;
+        const D = norm(add(mul(T, 0.86), [0, -0.06, 0.5 * side]));
+        const S = norm(cross(D, [0, 1, 0]));
+        blade([c[0], c[1] + k * 0.03, hw * side], D, S, L2, (span / cnt) * (spine[1][0] - spine[0][0] ? Math.abs(spine[1][0] - spine[0][0]) : 4) * 1.5 + 0.8, k);
+      }
     }
-    const tdx = spine[1][0] - spine[0][0];
-    const tipP = [spine[0][0] - Math.sign(tdx || 1) * fr * 0.9, -spine[0][1] + 0.4, 0];
-    left.unshift(tipP); right.unshift(tipP); mid.unshift(tipP);
-    const grid = [left, mid, right];
-    push(sheet(grid, { color: (r, c) => { const k = 0.8 + 0.2 * (c % 2); return [k, k, k, 1]; } }), feat.tailFan || feat.tailFeathers || feat.wings ? 'feather' : 'wing', { double: true });
+    const c0 = at(0); const c1 = at(0.5);
+    const T0 = norm([c0[0] - c1[0], c0[1] - c1[1], 0]);
+    blade([c0[0], c0[1], 0], T0, [0, 0, 1], fr * 1.5 + 2, fr * 0.5 + 1.2, 0);
   }
   if (feat.paddleTail) {
     // Aleta vertical alta sobre la cola (Spinosaurus).

@@ -99,6 +99,7 @@ function todayPanel(s) {
     <button class="tcard${booth >= cap * 0.5 ? ' hot' : ''}" type="button" data-p="booth"><span class="ti">🎟️</span><b>Taquilla</b><span data-pbooth>${Math.floor(booth)} / ${cap}</span></button>
     <button class="tcard${st.disponible ? ' hot' : ''}" type="button" data-p="daily"><span class="ti">${st.disponible ? '🎁' : '🔥'}</span><b>${st.disponible ? '¡Regalo!' : `Racha ${s.recompensas.diaria.racha}`}</b><span>${st.disponible ? 'Reclámalo' : `en ${fmtLong(msToMidnight(now))}`}</span></button>
     <button class="tcard${free.listo || chests ? ' hot' : ''}" type="button" data-p="chest"><span class="ti">📦</span><b>${chests ? `${chests} cofre${chests > 1 ? 's' : ''}` : 'Envío gratis'}</b><span data-pfree>${free.listo ? '¡Listo!' : fmtLong(free.faltaMs)}</span></button>
+    <a class="tcard${s.expedicion ? ' hot' : ''}" href="#/expedicion"><span class="ti">🧭</span><b>Expedición</b><span>${s.expedicion ? '¡En marcha!' : 'Sal a explorar'}</span></a>
     <a class="tcard${claimable ? ' hot' : ''}" href="#/recompensas"><span class="ti">📋</span><b>Misiones</b><span>${done}/3 de hoy</span></a>
     <a class="tcard" href="#/recompensas"><span class="ti">${bonus.icono}</span><b>${esc(bonus.titulo)}</b><span>${esc(bonus.desc)}</span></a>
   </div>`;
