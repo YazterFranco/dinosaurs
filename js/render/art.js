@@ -105,7 +105,7 @@ function hydrateOne(el) {
   const { species, opts } = job;
   const genes = job.genes || defaultGenes(species);
   if (opts.viewer) {
-    const look = lib.spriteKey(species, genes, { ...opts, size: 'viewer' });
+    const look = lib.spriteKey(species, genes, { ...opts, size: 'viewer' }) + (opts.backdrop ? opts.backdrop.join() : '');
     const vkey = opts.viewerKey || null;
     const prev = vkey ? viewers.get(vkey) : null;
     if (prev && prev.look === look && prev.canvas) {
@@ -117,6 +117,7 @@ function hydrateOne(el) {
     }
     if (prev) { prev.dispose(); viewers.delete(vkey); }
     const v = lib.mountViewer(el, species, genes, { ...opts, aspect: 1.5, maxWidth: opts.maxWidth || 360 });
+    if (v && opts.onViewer) opts.onViewer(v);
     if (v) viewers.set(vkey || `v${id}`, { ...v, look });
     return;
   }

@@ -6,12 +6,20 @@ import {
   STAT_KEYS, STAT_NAMES, PATTERN_NAMES, VARIANTS, VARIANT_INFO, dominantPattern, variantOf, isCarrier, phenotype,
 } from '../../systems/genetics.js';
 import { dinoArt } from '../../render/art.js';
+import { dayPhase } from '../../systems/calendar.js';
 import { ACCESSORIES } from '../../data/cosmetics.js';
 import { equipAccessory } from '../../systems/rewards.js';
 import { openPostcard } from '../postcard.js';
 import {
   esc, bar, setBar, openSheet, closeSheet, sheetBody, setSheetTick, fmtTime, confirmSheet, heartBurst, toast,
 } from '../dom.js';
+
+/** Colores del escenario del visor: el bioma del recinto donde vive. */
+function stageBg(s, d, sp) {
+  const rec = s.recintos.find((r) => r.id === d.recinto);
+  const b = BIOMES[(rec && rec.bioma) || sp.bioma] || BIOMES[sp.bioma];
+  return [b.cielo[0], b.cielo[1], b.suelo[0]];
+}
 
 const REQ = { comida: ['🍽️', 'Tiene hambre de algo rico'], caricia: ['🤚', 'Quiere caricias'], juego: ['⚽', 'Quiere jugar'] };
 let tab = 'cuidado';
@@ -33,7 +41,7 @@ function draw(app, id, first = false) {
   const title = `${esc(d.nombre)} <span class="muted small">${d.genes.sexo === 'M' ? '♂ macho' : '♀ hembra'}</span>`;
   const html = `
     <div class="portrait" id="dino-portrait">
-      ${dinoArt(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio, viewer: true, viewerKey: `ficha-${d.id}`, title: `${d.nombre}, ${sp.nombre}` })}
+      ${dinoArt(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio, viewer: true, viewerKey: `ficha-${d.id}`, title: `${d.nombre}, ${sp.nombre}`, phase: dayPhase().id, backdrop: stageBg(s, d, sp) })}
       ${d.peticion ? `<span class="bubble">${REQ[d.peticion.tipo][0]} ${REQ[d.peticion.tipo][1]}</span>` : ''}
     </div>
     <div class="portrait-meta"><p class="small muted">${esc(sp.nombre)} · ${stageLabel(stage)} · <a href="#/dinopedia/${sp.id}">Ver en la Dinopedia</a></p>

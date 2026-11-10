@@ -399,7 +399,7 @@ export function createRenderer(canvas, opts = {}) {
     const tex = {
       body: makeTex(gl, bodyTexture(model, { countershade: !!model.countershade, w: 512 * ts, h: 256 * ts }), { wrapU: gl.CLAMP_TO_EDGE }),
       head: makeTex(gl, headTexture(model, parsePath(info.head.jaw, 8), { w: 256 * ts, h: 128 * ts }), { wrapU: gl.CLAMP_TO_EDGE }),
-      iris: makeTex(gl, irisTexture(c.ojo === '#1f1a14' ? `hsl(${36 + ((model.genes?.hue2 || 0) % 22)} 72% 40%)` : c.ojo), { wrapU: gl.CLAMP_TO_EDGE, wrapV: gl.CLAMP_TO_EDGE }),
+      iris: makeTex(gl, irisTexture(c.ojo === '#1f1a14' ? `hsl(${36 + ((model.genes?.hue2 || 0) % 22)} 72% 40%)` : c.ojo, 64, info.pupil), { wrapU: gl.CLAMP_TO_EDGE, wrapV: gl.CLAMP_TO_EDGE }),
     };
     const lastBody = info.bodyMap[info.bodyMap.length - 1];
     const avgGirth = info.bodyMap.reduce((a, m) => a + m.girth, 0) / info.bodyMap.length;
@@ -483,7 +483,7 @@ export function createRenderer(canvas, opts = {}) {
     for (const t of Object.values(scene.tex)) gl.deleteTexture(t);
   }
 
-  const light = {
+  const DAY = {
     key: norm3([0.42, 0.85, 0.55]),
     keyCol: [1.95, 1.82, 1.64],
     rim: norm3([-0.55, 0.45, -0.75]),
@@ -491,6 +491,15 @@ export function createRenderer(canvas, opts = {}) {
     sky: [0.5, 0.58, 0.74],
     ground: [0.33, 0.28, 0.21],
   };
+  // Luz según la hora (como el modo de captura de los juegos de parques): sol
+  // bajo y dorado al amanecer y al atardecer, luna fría de noche.
+  const LIGHTS = {
+    dia: DAY,
+    amanecer: { ...DAY, key: norm3([0.75, 0.42, 0.5]), keyCol: [2.0, 1.5, 1.12], rimCol: [0.8, 0.95, 1.4], sky: [0.5, 0.5, 0.62], ground: [0.36, 0.27, 0.2] },
+    atardecer: { ...DAY, key: norm3([0.8, 0.34, 0.35]), keyCol: [2.1, 1.25, 0.8], rimCol: [0.75, 0.8, 1.35], sky: [0.5, 0.42, 0.5], ground: [0.38, 0.25, 0.18] },
+    noche: { ...DAY, key: norm3([0.3, 0.8, 0.45]), keyCol: [0.62, 0.78, 1.15], rimCol: [0.5, 0.7, 1.2], sky: [0.16, 0.22, 0.38], ground: [0.1, 0.11, 0.14] },
+  };
+  let light = DAY;
 
   function setCommon(prog, model, cam, lightVP, a) {
     const u = prog.u;
@@ -588,6 +597,7 @@ export function createRenderer(canvas, opts = {}) {
    * breath, yaw, pitch, blink, flapAmt, silhouette, shadows, ground, clear }.
    */
   function render(scene, cam, o = {}) {
+    light = LIGHTS[o.light] || DAY;
     const W = canvas.width; const H = canvas.height;
     const model = o.model || m4.ident();
     const a = { ...scene.anim, irid: scene.irid, ...o };

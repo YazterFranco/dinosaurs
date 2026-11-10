@@ -696,6 +696,14 @@ img.dino-img { display: block; width: 100%; height: auto; user-select: none; -we
 .dino-3d-canvas:active { cursor: grabbing; }
 .dino-viewer.is-3d { position: relative; }
 .dino-3d { position: relative; display: block; width: 100%; }
+/* Escenario del visor: cielo, bruma en el horizonte y suelo del hábitat. */
+.dino-3d.has-bg { border-radius: 14px; overflow: hidden; padding-bottom: 8px;
+  background: linear-gradient(180deg, var(--sky) 0%, var(--haze) 52%, color-mix(in srgb, var(--soil) 55%, var(--haze)) 62%, var(--soil) 100%); }
+.dino-3d.bg-amanecer { background-image: linear-gradient(180deg, #f6c9a0 0%, #fbe6c2 52%, color-mix(in srgb, var(--soil) 60%, #f4c58f) 62%, var(--soil) 100%); }
+.dino-3d.bg-atardecer { background-image: linear-gradient(180deg, #e98f5c 0%, #f7cf9a 52%, color-mix(in srgb, var(--soil) 60%, #d98a4e) 62%, color-mix(in srgb, var(--soil) 80%, #5a3520) 100%); }
+.dino-3d.bg-noche { background-image: linear-gradient(180deg, #131b3a 0%, #2a3a5e 52%, color-mix(in srgb, var(--soil) 35%, #1a2440) 62%, color-mix(in srgb, var(--soil) 30%, #10182e) 100%); }
+.dino-3d.has-bg .dino-3d-canvas { border-radius: 0; }
+.stage-chips { justify-content: center; margin-top: 8px; }
 .dino-3d-ctl { display: flex; justify-content: center; gap: 8px; margin-top: 2px; }
 .dino-3d-ctl .chip { min-height: 36px; padding: 4px 12px; font-size: 0.85rem; }
 .dino-3d-ctl .chip[aria-pressed="true"] { background: var(--fern, #2e6a4e); color: #fff; border-color: transparent; }

@@ -131,7 +131,11 @@ function makeStrandNoise(size, seed) {
 }
 
 /** Iris: anillo oscuro, vetas radiales, pupila y fondo oscuro. */
-export function irisTexture(color, size = 64) {
+/**
+ * Iris con pupila. `pupil`: 'redonda' (diurnos), 'vertical' (cazadores
+ * nocturnos, como gatos y gecos) u 'ovalada' (activos de día y de noche).
+ */
+export function irisTexture(color, size = 64, pupil = 'redonda') {
   const [r, g, b] = cssToRgb(color);
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y += 1) {
@@ -142,9 +146,11 @@ export function irisTexture(color, size = 64) {
       const streak = 0.85 + 0.15 * Math.sin(a * 23) * Math.sin(a * 7 + d * 9);
       let k = streak * mix(1.15, 0.7, smooth(0.3, 0.95, d));
       let cr = r * k; let cg = g * k; let cb = b * k;
-      const pupil = smooth(0.36, 0.31, d);
+      const px = pupil === 'vertical' ? 3.2 : pupil === 'ovalada' ? 1.45 : 1;
+      const dp = Math.sqrt(dx * dx * px * px + (dy * dy) / (pupil === 'vertical' ? 2.2 : 1)) * 2;
+      const pupilK = smooth(0.36, 0.31, dp);
       const limbal = smooth(0.82, 0.98, d);
-      cr = mix(cr, 18, pupil); cg = mix(cg, 12, pupil); cb = mix(cb, 8, pupil);
+      cr = mix(cr, 18, pupilK); cg = mix(cg, 12, pupilK); cb = mix(cb, 8, pupilK);
       cr = mix(cr, 28, limbal); cg = mix(cg, 20, limbal); cb = mix(cb, 14, limbal);
       const o = (y * size + x) * 4;
       data[o] = clamp(cr, 0, 255); data[o + 1] = clamp(cg, 0, 255); data[o + 2] = clamp(cb, 0, 255); data[o + 3] = 255;

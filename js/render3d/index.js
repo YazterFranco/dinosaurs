@@ -104,7 +104,7 @@ function spriteRenderer(W, H) {
 export function spriteKey(species, genes, opts = {}) {
   const g = genes || {};
   const gk = genes ? [g.hue1, g.hue2, g.sat, g.luz, (g.patron || []).join(''), (g.variante || []).join(''), g.seed].join(',') : 'base';
-  return [VERSION, species.id, opts.stage || 'adulto', opts.mood || '', opts.sleeping ? 'z' : '', opts.accesorio || '', opts.silhouette ? 's' : '', opts.size || 'md', gk].join('|') + (opts.az != null ? `|az${opts.az},${opts.el ?? ''}` : '') + (opts.jaw ? `|j${opts.jaw}` : '') + (opts.walk != null ? `|w${opts.walk}` : '') + (opts.frames ? `|f${opts.frames}` : '');
+  return [VERSION, species.id, opts.stage || 'adulto', opts.mood || '', opts.sleeping ? 'z' : '', opts.accesorio || '', opts.silhouette ? 's' : '', opts.size || 'md', gk].join('|') + (opts.az != null ? `|az${opts.az},${opts.el ?? ''}` : '') + (opts.jaw ? `|j${opts.jaw}` : '') + (opts.walk != null ? `|w${opts.walk}` : '') + (opts.frames ? `|f${opts.frames}` : '') + (opts.phase && opts.phase !== 'dia' ? `|${opts.phase}` : '');
 }
 
 export function cachedSprite(key) { return cache.get(key) || null; }
@@ -261,7 +261,7 @@ export function renderNow(species, genes, opts = {}) {
       g.drawImage(s.canvas, f * W, 0);
     }
   } else {
-    s.r.render(scene, cam, { ...ro, walk: opts.walk || 0, walkAmt: opts.walk != null ? 1 : 0 });
+    s.r.render(scene, cam, { ...ro, light: opts.phase, walk: opts.walk || 0, walkAmt: opts.walk != null ? 1 : 0 });
   }
   if (opts.sleeping) {
     const c2 = document.createElement('canvas');
@@ -308,7 +308,8 @@ export function mountViewer(el, species, genes, opts = {}) {
   canvas.tabIndex = 0;
   // Envoltorio: el lienzo, la pista de "arrastra" y los botones de acción.
   const wrap = document.createElement('div');
-  wrap.className = 'dino-3d';
+  wrap.className = `dino-3d${opts.backdrop ? ` has-bg bg-${opts.phase || 'dia'}` : ''}`;
+  if (opts.backdrop) { wrap.style.setProperty('--sky', opts.backdrop[0]); wrap.style.setProperty('--haze', opts.backdrop[1]); wrap.style.setProperty('--soil', opts.backdrop[2]); }
   wrap.appendChild(canvas);
   const soft = isSoftwareGL();
   const r = createRenderer(canvas, { shadowSize: soft ? 1024 : 2048 });
@@ -404,6 +405,7 @@ export function mountViewer(el, species, genes, opts = {}) {
       pitch: (still || opts.sleeping ? 0 : Math.sin(t * 0.23 + 1) * 0.05) + open * 0.2 + walkAmt * Math.sin(walkPh * 2) * 0.025,
       flapAmt: still ? 0 : 1,
       blink: Math.max(blink, open * 0.45),
+      light: opts.phase,
       jawOpen: open * jawMax * (1 + 0.06 * Math.sin(tr * 46)),
       walk: walkPh,
       walkAmt,

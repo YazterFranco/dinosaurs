@@ -11,6 +11,10 @@ import { esc, fmtKg, bar } from '../dom.js';
 let filter = 'todos';
 let query = '';
 let mode = 'fichas';
+let stageView = 'adulto';
+let stageOf = '';
+const STAGES = [['cria', 'Cría'], ['juvenil', 'Juvenil'], ['adulto', 'Adulto']];
+const ACTIVITY = { noche: ['🌙', 'Cazaba de noche'], mixto: ['🌗', 'Activo de día y de noche'] };
 
 export function render(el, params, app) {
   if (params[0] && SPECIES_BY_ID[params[0]]) return renderEntry(el, SPECIES_BY_ID[params[0]], app);
@@ -109,6 +113,7 @@ function sizeCompare(sp) {
 
 function renderEntry(el, sp, app) {
   const s = app.state;
+  if (stageOf !== sp.id) { stageOf = sp.id; stageView = 'adulto'; }
   const g = s.genoma[sp.id] || 0;
   const known = g > 0;
   const sites = SITES.filter((x) => x.especies.includes(sp.id));
@@ -125,11 +130,12 @@ function renderEntry(el, sp, app) {
   const d = DIETS[sp.dieta];
   el.innerHTML = `<a href="#/dinopedia" class="small">← Volver a la Dinopedia</a>
     <div class="entry-hero" style="margin-top:10px">
-      <div class="portrait">${dinoArt(sp, null, { anim: true, viewer: true, viewerKey: `pedia-${sp.id}` })}</div>
+      <div class="portrait">${dinoArt(sp, null, { anim: true, viewer: true, viewerKey: `pedia-${sp.id}`, stage: stageView, backdrop: [BIOMES[sp.bioma].cielo[0], BIOMES[sp.bioma].cielo[1], BIOMES[sp.bioma].suelo[0]] })}
+        <div class="chips stage-chips" role="group" aria-label="Etapa de crecimiento">${STAGES.map(([k, l]) => `<button class="chip" type="button" data-stage="${k}" aria-pressed="${stageView === k}">${l}</button>`).join('')}</div></div>
       <div class="entry-title">
         <h1 class="sci">${esc(sp.nombre)}</h1>
         <p><b>"${esc(sp.significado)}"</b> · se pronuncia <i>${esc(sp.pronunciacion)}</i></p>
-        <p style="margin-top:8px"><span class="tag tag-${sp.periodo.slice(0, 3)}">${esc(periodLabel(sp))}</span> <span class="tag">${d.icono} ${d.nombre}</span> <span class="tag" style="background:${rar.color};color:#fff">${rar.nombre}</span></p>
+        <p style="margin-top:8px"><span class="tag tag-${sp.periodo.slice(0, 3)}">${esc(periodLabel(sp))}</span> <span class="tag">${d.icono} ${d.nombre}</span> <span class="tag" style="background:${rar.color};color:#fff">${rar.nombre}</span>${ACTIVITY[sp.actividad] ? ` <span class="tag" title="Según la forma de los huesos de sus ojos">${ACTIVITY[sp.actividad][0]} ${ACTIVITY[sp.actividad][1]}</span>` : ''}</p>
         <div class="need" style="margin-top:12px"><label><span>🧬 Genoma recuperado</span><span>${g.toFixed(g % 1 ? 1 : 0)} %</span></label>${bar(g, 'leaf nolow')}</div>
       </div>
     </div>
@@ -157,6 +163,14 @@ function renderEntry(el, sp, app) {
       </dl>
     </section>
     <p class="small muted" style="margin-top:16px">Las medidas son estimaciones promedio; cambian según el ejemplar y el estudio. ${sp.colorReal ? 'El color de esta especie se reconstruyó a partir de sus fósiles.' : 'Los colores de la ilustración son imaginados: casi nunca se conserva el color real.'}</p>`;
+  // Ver a la especie de cría, juvenil o adulta.
+  el.querySelectorAll('[data-stage]').forEach((b) => b.addEventListener('click', () => {
+    stageView = b.dataset.stage;
+    app.sfx.tap();
+    const y = window.scrollY;
+    renderEntry(el, sp, app);
+    window.scrollTo(0, y);
+  }));
 }
 
 function fact(k, v) {

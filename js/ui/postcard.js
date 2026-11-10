@@ -62,12 +62,18 @@ function toPng(svg) {
   });
 }
 
+const POSES = [['normal', 'De lado'], ['rugido', 'Rugiendo'], ['frente', 'De frente'], ['paso', 'Caminando']];
+const POSE_OPTS = { normal: {}, rugido: { jaw: 0.5, az: 36 }, frente: { az: 62 }, paso: { walk: 1.2 } };
+
 export function openPostcard(app, dinoId, onBack) {
   const s = app.state;
   const d = s.dinos.find((x) => x.id === dinoId);
   if (!d) return;
   let svg = cardSVG(s, d);
   const body = openSheet('Postal', `<div class="postcard" id="pc-box">${svg.replace('<svg ', '<svg class="postcard-svg" ')}</div>
+    <div class="chips" id="pc-pose" role="group" aria-label="Pose de la foto" style="justify-content:center;flex-wrap:wrap;margin-top:10px" hidden>
+      ${POSES.map(([k, l], i) => `<button class="chip" type="button" data-pose="${k}" aria-pressed="${i === 0}">${l}</button>`).join('')}
+    </div>
     <p class="small muted" style="text-align:center;margin-top:8px">También puedes mantener presionada la imagen para guardarla.</p>
     <div class="sheet-actions">
       <button class="btn btn-amber" type="button" data-share>Compartir</button>
@@ -88,11 +94,20 @@ export function openPostcard(app, dinoId, onBack) {
   }).catch(() => { /* se queda la vista en SVG */ });
   preview();
   // Si hay 3D, la postal usa el dinosaurio renderizado en 3D.
-  dinoPngDataUrl(SPECIES_BY_ID[d.especie], d.genes, { stage: stageOf(d), mood: moodOf(d, s.tiempoJuego) || 'feliz', accesorio: d.accesorio, size: 'lg' }).then((png) => {
+  // Modo foto: elegir la pose (solo con 3D).
+  const shoot = (pose) => dinoPngDataUrl(SPECIES_BY_ID[d.especie], d.genes, { stage: stageOf(d), mood: moodOf(d, s.tiempoJuego) || 'feliz', accesorio: d.accesorio, size: 'lg', ...POSE_OPTS[pose] }).then((png) => {
     if (!png || !body.isConnected) return;
     svg = cardSVG(s, d, png);
+    const bar = body.querySelector('#pc-pose');
+    if (bar) bar.hidden = false;
     preview();
   });
+  shoot('normal');
+  body.querySelectorAll('[data-pose]').forEach((b) => b.addEventListener('click', () => {
+    body.querySelectorAll('[data-pose]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    app.sfx.tap();
+    shoot(b.dataset.pose);
+  }));
   const download = async () => {
     try {
       const blob = await toPng(svg);

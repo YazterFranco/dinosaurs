@@ -95,6 +95,7 @@ export const SPECIES = [
   },
   {
     id: 'velociraptor',
+    actividad: 'noche',
     nombre: 'Velociraptor',
     significado: 'Ladrón veloz',
     pronunciacion: 've-lo-si-RAP-tor',
@@ -179,6 +180,7 @@ export const SPECIES = [
   },
   {
     id: 'diplodocus',
+    actividad: 'mixto',
     nombre: 'Diplodocus',
     significado: 'Doble viga',
     pronunciacion: 'di-PLO-do-kus',
@@ -543,6 +545,7 @@ export const SPECIES = [
   },
   {
     id: 'protoceratops',
+    actividad: 'mixto',
     nombre: 'Protoceratops',
     significado: 'Primera cara con cuernos',
     pronunciacion: 'pro-to-SE-ra-tops',
@@ -627,6 +630,7 @@ export const SPECIES = [
   },
   {
     id: 'microraptor',
+    actividad: 'noche',
     nombre: 'Microraptor',
     significado: 'Pequeño ladrón',
     pronunciacion: 'mi-cro-RAP-tor',
@@ -1020,6 +1024,7 @@ export const SPECIES = [
   },
   {
     id: 'psittacosaurus',
+    actividad: 'mixto',
     nombre: 'Psittacosaurus',
     significado: 'Lagarto loro',
     pronunciacion: 'si-ta-co-SAU-rus',

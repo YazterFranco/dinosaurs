@@ -308,6 +308,17 @@ en `js/render3d/`.
     cerrada quedan tapados por los labios.
   - En el visor: tocar al animal (o el botón) lo hace rugir, con una voz
     sintetizada según su tamaño; otro botón lo pone a caminar.
+- **Escenario y hora:** el visor muestra el cielo y el suelo del hábitat, y
+  la luz sigue la hora del parque (sol bajo y dorado al amanecer y al
+  atardecer, luna fría de noche), como el modo de captura de *Jurassic World
+  Evolution*.
+- **Etapas:** en la Dinopedia se puede ver cada especie de cría, juvenil o
+  adulta (como las etapas de crecimiento de *Prehistoric Kingdom*).
+- **Modo foto:** la postal permite elegir la pose: de lado, rugiendo, de
+  frente o caminando.
+- **Pupilas:** verticales en los cazadores nocturnos (*Velociraptor*,
+  *Microraptor*) y ovaladas en los activos de día y de noche, según los
+  anillos escleróticos (Schmitz y Motani, *Science*, 2011). La ficha lo indica.
 - **Luz de estudio:** luz principal cálida, luz de contorno fría (heredera del
   sombreado de *Team Fortress 2*), cielo y suelo, sombras con mapa de sombras y
   filtrado PCF, sombra de contacto y curva de tono ACES (la del cine), para que

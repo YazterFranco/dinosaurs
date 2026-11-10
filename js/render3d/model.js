@@ -1230,6 +1230,7 @@ export function buildModel(species, genes, opts = {}) {
       head: { ex, eyeUp, eyeR, jaw: head.jaw, nose: head.nose, len: head.len, beak: !!head.beak, bill: !!head.bill, kind: head.kind, mask: !!feat.mask, x0: hR[0], x1: hR[1] },
       feathered, fullFeathers, plan, baby, rx, ry, tailLen,
       skinScale,
+      pupil: species.actividad === 'noche' ? 'vertical' : species.actividad === 'mixto' ? 'ovalada' : 'redonda',
       floats: plan === 'flyer' || plan === 'swim',
       headTop,
       seed: genes.seed || 7,
