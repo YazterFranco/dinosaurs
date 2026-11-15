@@ -91,3 +91,52 @@ test('el interruptor de 3D en Ajustes guarda la preferencia', async ({ page }) =
   await toggle.uncheck();
   await expect.poll(() => page.evaluate(() => localStorage.getItem('dino-refugio-3d'))).toBe('off');
 });
+
+test('el visor muestra al animal en su hábitat y la postal sale con ese paisaje', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  test.setTimeout(150_000);
+  await page.addInitScript(() => localStorage.setItem('dino-refugio-3d', 'on'));
+  await start(page);
+  test.skip(!(await hasWebGL2(page)), 'este navegador no tiene WebGL2');
+  await page.locator('.dino-row').first().click();
+  const stage = page.locator('#dino-portrait .dino-3d.has-env');
+  await expect(stage).toBeVisible({ timeout: 30_000 });
+  // El escenario llena el lienzo: arriba hay cielo y abajo suelo (colores distintos).
+  const px = await page.evaluate(() => new Promise((resolve) => {
+    const c = document.querySelector('#dino-portrait canvas.dino-3d-canvas');
+    // El lienzo WebGL se borra tras pintarse: se copia justo después de un cuadro.
+    c.focus();
+    c.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const t = document.createElement('canvas');
+      t.width = 40; t.height = 40;
+      const g = t.getContext('2d');
+      g.drawImage(c, 0, 0, 40, 40);
+      const top = g.getImageData(20, 2, 1, 1).data; const bottom = g.getImageData(4, 37, 1, 1).data;
+      resolve({ top: [...top], bottom: [...bottom] });
+    }));
+  }));
+  // (Si el cuadro ya se había borrado, ambos píxeles vienen vacíos y no se compara.)
+  if (px.top[3] > 0 && px.bottom[3] > 0) {
+    const diff = Math.abs(px.top[0] - px.bottom[0]) + Math.abs(px.top[1] - px.bottom[1]) + Math.abs(px.top[2] - px.bottom[2]);
+    expect(diff).toBeGreaterThan(12);
+  }
+  await page.locator('[data-photo]').click();
+  await expect(page.locator('#pc-pose')).toBeVisible({ timeout: 40_000 });
+  await expect(page.locator('#pc-box img.postcard-svg')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('con la calidad al mínimo el visor sigue funcionando sin escenario', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  test.setTimeout(120_000);
+  await page.addInitScript(() => { localStorage.setItem('dino-refugio-3d', 'on'); localStorage.setItem('dino-refugio-calidad', '0'); });
+  await start(page);
+  test.skip(!(await hasWebGL2(page)), 'este navegador no tiene WebGL2');
+  await page.locator('.dino-row').first().click();
+  await expect(page.locator('#dino-portrait canvas.dino-3d-canvas')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#dino-portrait .dino-3d.has-env')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

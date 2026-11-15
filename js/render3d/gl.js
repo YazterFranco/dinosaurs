@@ -7,6 +7,8 @@
 
 import { skinDetail, strandNoise, irisTexture, bodyTexture, headTexture, cssToRgb, natural } from './textures.js';
 import { parsePath } from './model.js';
+import { createEnvPass, envLook, hashStr, noiseTexture, FINISH_GLSL } from './env.js';
+import { createPost } from './post.js';
 
 // ------------------------------------------------------------ matemáticas
 export const m4 = {
@@ -32,6 +34,27 @@ export const m4 = {
     const x = norm3(cross3(up, z));
     const y = cross3(z, x);
     return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot3(x, eye), -dot3(y, eye), -dot3(z, eye), 1];
+  },
+  invert(m) {
+    const inv = new Array(16);
+    inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10];
+    inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10];
+    inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9];
+    inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9];
+    inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10];
+    inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10];
+    inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9];
+    inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9];
+    inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15] + m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6];
+    inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15] - m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6];
+    inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15] + m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5];
+    inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14] - m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5];
+    inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11] - m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6];
+    inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11] + m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6];
+    inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11] - m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5];
+    inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10] + m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5];
+    const det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+    return det ? inv.map((v) => v / det) : m4.ident();
   },
   translate: (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1],
   rotY(a) { const c = Math.cos(a); const s = Math.sin(a); return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1]; },
@@ -152,8 +175,10 @@ uniform sampler2D uStrand; uniform float uShellT; uniform vec2 uStrandRep;
 uniform float uFeath; uniform vec2 uFeathRep;
 uniform sampler2DShadow uShadow; uniform float uUseShadow;
 uniform vec3 uCam, uKeyDir, uKeyCol, uRimDir, uRimCol, uSky, uGround;
-uniform float uRough, uSpec, uSSS, uTrans, uMetal, uEmis, uIrid, uExposure, uFlat;
-uniform vec3 uFlatCol;
+uniform float uRough, uSpec, uSSS, uTrans, uMetal, uEmis, uIrid, uFlat, uIbl;
+uniform vec3 uFlatCol, uEnvZen, uEnvHor, uEnvGnd;
+uniform sampler2D uNoise; uniform vec4 uCaust, uDirt; uniform float uMottle; uniform vec2 uMotRep;
+${FINISH_GLSL}
 out vec4 outColor;
 float shadowAt(vec4 lp){
   vec3 p = lp.xyz/lp.w*0.5+0.5;
@@ -163,7 +188,6 @@ float shadowAt(vec4 lp){
   for (int i=-2;i<=2;i++) for (int j=-2;j<=2;j++) s += texture(uShadow, vec3(p.xy + vec2(float(i),float(j))*tx*1.2, p.z - 0.0018));
   return s/25.0;
 }
-vec3 aces(vec3 x){ x *= 0.6; return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }
 vec2 gdx, gdy;
 float fineH;
 // Altura de la piel en un punto: escamas finas + escamas grandes + arrugas
@@ -197,6 +221,20 @@ void main(){
   if (abs(ax.y) + abs(ay.y) < abs(gdx.y) + abs(gdy.y)) { gdx = ax; gdy = ay; }
   vec3 base = uColor * vCol.rgb;
   if (uUseMap > 0.5) base *= textureGrad(uMap, vUv, gdx, gdy).rgb;
+  if (uMottle > 0.0) {
+    // Ningún animal es de un solo tono: manchas suaves grandes y medianas.
+    float m1 = textureGrad(uNoise, vUv*uMotRep, gdx*uMotRep, gdy*uMotRep).r;
+    float m2 = textureGrad(uNoise, vUv*uMotRep*vec2(3.0, 3.0) + 0.4, gdx*uMotRep*3.0, gdy*uMotRep*3.0).g;
+    float mot = smoothstep(0.28, 0.72, m1*0.62 + m2*0.38);
+    base *= mix(1.0 - 0.3*uMottle, 1.0 + 0.16*uMottle, mot);
+    base = mix(base, base*vec3(1.1, 0.97, 0.82), (m2 - 0.5)*uMottle*0.9);
+  }
+  if (uDirt.w > 0.0) {
+    // Polvo y barro en las patas y la panza, del color del suelo que pisa.
+    float dn = textureGrad(uNoise, vUv*uMotRep*5.0, gdx*uMotRep*5.0, gdy*uMotRep*5.0).g;
+    float dz = (1.0 - smoothstep(0.0, uDirt.w, vWorld.y + (dn - 0.5)*uDirt.w*0.7));
+    base = mix(base, uDirt.rgb*(0.7 + 0.5*dn), dz*0.5);
+  }
   if (uFeath > 0.0) {
     // Plumas de contorno: hileras solapadas como tejas, con el raquis claro.
     vec2 q = vUv*uFeathRep;
@@ -229,6 +267,14 @@ void main(){
   float sss = smoothstep(-w, 0.25, ndl) * (1.0 - smoothstep(0.25, 0.85, ndl)) * w;
   float sh = uUseShadow > 0.5 ? shadowAt(vLight) : 1.0;
   sh = mix(1.0, sh, 0.85);
+  // Bajo el agua, la luz del sol llega en manchas que se mueven (cáusticas).
+  float kc = 1.0;
+  if (uCaust.x > 0.0) {
+    vec2 cp = vWorld.xz*uCaust.y;
+    float c1 = texture(uNoise, cp + vec2(uCaust.z*0.02, uCaust.z*0.013)).g;
+    float c2 = texture(uNoise, cp*1.7 - vec2(uCaust.z*0.017, uCaust.z*0.008)).r;
+    kc = mix(1.0, 0.6 + 2.0*pow(max(0.0, 1.0 - abs(c1 - c2)*2.2), 6.0), uCaust.x*smoothstep(-0.3, 0.5, N.y));
+  }
   vec3 H = normalize(L + V);
   float a = max(0.03, uRough*uRough);
   float ndh = max(dot(N, H), 0.0);
@@ -237,7 +283,7 @@ void main(){
   float F = 0.04 + 0.96*pow(1.0 - max(dot(H, V), 0.0), 5.0);
   float spec = D*F*0.25*uSpec*max(ndl, 0.0)*mix(0.45, 1.15, cav);
   vec3 sc = mix(vec3(1.0), base, uMetal);
-  vec3 col = base*(1.0 - uMetal*0.85)*uKeyCol*(diff*sh) + base*uKeyCol*sss*vec3(1.0, 0.42, 0.3)*0.55;
+  vec3 col = base*(1.0 - uMetal*0.85)*uKeyCol*(diff*sh*kc) + base*uKeyCol*sss*vec3(1.0, 0.42, 0.3)*0.55;
   col += sc*uKeyCol*spec*sh;
   float hem = N.y*0.5 + 0.5;
   // La luz ambiente también llega menos donde el cuerpo se hace sombra.
@@ -246,6 +292,19 @@ void main(){
   float fres = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   float rimL = max(0.0, dot(N, normalize(uRimDir))*0.75 + 0.25);
   col += uRimCol*fres*rimL*(0.25 + 0.75*base)*(0.6 + 0.4*vCol.a);
+  // Reflejo del cielo y del suelo en la piel (iluminación basada en el entorno).
+  {
+    float nov = max(dot(N, V), 0.0);
+    vec3 R = reflect(-V, N);
+    vec3 skyc = mix(uEnvHor, uEnvZen, pow(clamp(R.y, 0.0, 1.0), 0.5));
+    float k = 0.02 + uRough*0.5;
+    vec3 env = mix(uEnvGnd, skyc, smoothstep(-k, k, R.y));
+    env = mix(env, mix(uEnvGnd, uEnvHor, 0.6), uRough*uRough*0.6);
+    vec4 r = uRough*vec4(-1.0, -0.0275, -0.572, 0.022) + vec4(1.0, 0.0425, 1.04, -0.04);
+    float a004 = min(r.x*r.x, exp2(-9.28*nov))*r.x + r.y;
+    vec2 AB = vec2(-1.04, 1.04)*a004 + r.zw;
+    col += env*(0.04*AB.x + AB.y)*min(uSpec, 1.6)*uIbl*mix(0.3, 1.0, cav)*vCol.a*mix(0.55, 1.0, sh);
+  }
   if (uTrans > 0.0) {
     col += base*uKeyCol*max(0.0, -ndl)*uTrans*0.55*vec3(1.0, 0.78, 0.6);
     col += base*uRimCol*pow(max(0.0, dot(V, -normalize(uRimDir))), 2.0)*uTrans*0.7;
@@ -256,8 +315,7 @@ void main(){
     col = mix(col, col*ir*1.7, uIrid*(0.35 + 0.65*t));
   }
   col += base*uEmis;
-  col = aces(col*uExposure);
-  outColor = vec4(pow(col, vec3(1.0/2.2)), 1.0);
+  outColor = finish(col, 1.0);
 }`;
 
 const GROUND_VS = `#version 300 es
@@ -321,11 +379,11 @@ function compile(gl, vs, fs) {
 // bump = [escamas finas, escamas grandes, arrugas]; macro = relieve anatómico
 // de la textura del animal; cav = cuánto se oscurece entre escamas.
 const MATS = {
-  body: { map: 'body', rough: 0.6, spec: 0.5, sss: 0.42, bump: [0.55, 0.5, 0.75], macro: 1.5, cav: 0.2, rep: 'body' },
-  head: { map: 'head', rough: 0.55, spec: 0.55, sss: 0.4, bump: [0.5, 0.35, 0.5], macro: 1.2, cav: 0.18, rep: 'head' },
-  skin: { color: 'piel', rough: 0.58, spec: 0.5, sss: 0.4, bump: [0.5, 0.3, 0.4], cav: 0.16, rep: 'patch' },
-  limb: { color: 'piel', rough: 0.64, spec: 0.45, sss: 0.38, bump: [0.5, 0.3, 0.25], ring: 0.45, cav: 0.16, rep: 'limb' },
-  limbFar: { color: 'pielFar', rough: 0.64, spec: 0.4, sss: 0.38, bump: [0.5, 0.3, 0.25], ring: 0.45, cav: 0.16, rep: 'limb' },
+  body: { map: 'body', rough: 0.6, spec: 0.5, sss: 0.42, bump: [0.55, 0.5, 0.75], macro: 1.5, cav: 0.2, rep: 'body', mottle: 1 },
+  head: { map: 'head', rough: 0.55, spec: 0.55, sss: 0.4, bump: [0.5, 0.35, 0.5], macro: 1.2, cav: 0.18, rep: 'head', mottle: 0.7 },
+  skin: { color: 'piel', rough: 0.58, spec: 0.5, sss: 0.4, bump: [0.5, 0.3, 0.4], cav: 0.16, rep: 'patch', mottle: 0.7 },
+  limb: { color: 'piel', rough: 0.64, spec: 0.45, sss: 0.38, bump: [0.5, 0.3, 0.25], ring: 0.45, cav: 0.16, rep: 'limb', mottle: 0.9 },
+  limbFar: { color: 'pielFar', rough: 0.64, spec: 0.4, sss: 0.38, bump: [0.5, 0.3, 0.25], ring: 0.45, cav: 0.16, rep: 'limb', mottle: 0.9 },
   shade: { color: 'sombra', rough: 0.55, spec: 0.5, sss: 0.25, bump: [0.3, 0.3, 0.5], cav: 0.15, rep: [2, 2] },
   accent: { color: 'acento', rough: 0.5, spec: 0.45, sss: 0.45, trans: 0.3, bump: [0.2, 0.2, 0.4], cav: 0.1, rep: [5, 5] },
   frill: { color: 'acento', rough: 0.6, spec: 0.4, sss: 0.45, trans: 0.12, bump: [0.5, 0.4, 0.6], cav: 0.2, rep: [5, 4], double: true },
@@ -369,6 +427,10 @@ export function createRenderer(canvas, opts = {}) {
   const lit = compile(gl, VS, FS);
   const depth = compile(gl, VS, DEPTH_FS);
   const ground = compile(gl, GROUND_VS, GROUND_FS);
+  // Escenario y posproceso: solo en el visor (las miniaturas van sin fondo).
+  const noiseTex = makeTex(gl, noiseTexture(256), { srgb: false });
+  const envPass = opts.env ? createEnvPass(gl, compile, makeTex, noiseTex) : null;
+  const post = opts.env && opts.post !== false ? createPost(gl, compile) : null;
   const bumpTex = makeTex(gl, skinDetail(256), { srgb: false });
   const strandTex = makeTex(gl, strandNoise(64), { srgb: false, mip: false });
   gl.bindTexture(gl.TEXTURE_2D, strandTex);
@@ -404,7 +466,7 @@ export function createRenderer(canvas, opts = {}) {
     const ts = uo.texScale || 1;
     const c = model.colors;
     const rgb = {
-      piel: natural(cssToRgb(c.piel)), sombra: natural(cssToRgb(c.sombra), 0.6, 0.9), acento: natural(cssToRgb(c.acento), 0.86, 0.98),
+      piel: natural(cssToRgb(c.piel)), sombra: natural(cssToRgb(c.sombra), 0.6, 0.9), acento: natural(cssToRgb(c.acento), 0.76, 0.96),
     };
     rgb.pielFar = rgb.piel.map((v, i) => v * 0.82 + rgb.sombra[i] * 0.18);
     // Plumas de vuelo: más oscuras que el cuerpo, con un toque del color de acento.
@@ -468,6 +530,8 @@ export function createRenderer(canvas, opts = {}) {
       if (part.mat === 'acc') Object.assign(mat, { color: part.color, rough: part.rough ?? 0.5, spec: part.metal ? 1.4 : 0.6, metal: part.metal || 0, emis: part.emissive || 0, sss: 0.1 });
       const colr = mat.color ? (mat.color[0] === '#' ? cssToRgb(mat.color) : rgb[mat.color]) : [255, 255, 255];
       mat.lin = toLin(colr);
+      // Plumaje iridiscente (Microraptor): negro con brillo azulado, como un cuervo.
+      if (model.iridescent && (model.genes?.variante || ['N', 'N']).every((v) => v === 'N') && (mat.map === 'body' || mat.map === 'head' || ['piel', 'pielFar', 'pluma', 'sombra'].includes(mat.color))) mat.lin = mat.lin.map((v) => v * 0.34);
       const rp = Array.isArray(mat.rep) ? mat.rep : reps[mat.rep] || [4, 4];
       // Alrededor del cuerpo (v) las repeticiones son enteras para que el
       // mosaico cierre; en las patas la uv ya viene en vueltas enteras.
@@ -579,6 +643,8 @@ export function createRenderer(canvas, opts = {}) {
     gl.uniform1f(u.uMacro, m.map && m.macro ? m.macro : 0);
     gl.uniform1f(u.uCav, m.cav || 0);
     gl.uniform1f(u.uRing, m.ring || 0);
+    gl.uniform1f(u.uMottle, a.silhouette ? 0 : (m.mottle || 0) * (a.mottle ?? 1));
+    gl.uniform2f(u.uMotRep, m.rep === 'limb' ? 0.3 : Math.max(0.6, m.rep2[0] * 0.2), m.rep === 'limb' ? 1 : Math.max(1, Math.round(m.rep2[1] * 0.2)));
     gl.uniform2fv(u.uBumpRep, m.rep2);
     gl.uniform2fv(u.uBumpRep2, m.rep3);
     gl.uniform1f(u.uRough, m.rough ?? 0.6);
@@ -629,7 +695,10 @@ export function createRenderer(canvas, opts = {}) {
     const radius = Math.hypot(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]) * 0.55;
     const lc = m4.apply(model, center);
     const lightView = m4.lookAt([lc[0] + light.key[0] * radius * 2.5, lc[1] + light.key[1] * radius * 2.5, lc[2] + light.key[2] * radius * 2.5], lc, [0, 1, 0]);
-    const lightProj = m4.ortho(-radius * 1.25, radius * 1.25, -radius * 1.25, radius * 1.25, radius * 0.5, radius * 5);
+    const env = o.env && envPass ? o.env : null;
+    // Con escenario, la sombra abarca también las plantas de alrededor.
+    const lr = radius * (env ? 1.7 : 1.25);
+    const lightProj = m4.ortho(-lr, lr, -lr, lr, radius * 0.3, radius * 5.5);
     const lightVP = m4.mul(lightProj, lightView);
     const shadows = o.shadows !== false && !o.silhouette;
     gl.enable(gl.DEPTH_TEST);
@@ -645,15 +714,28 @@ export function createRenderer(canvas, opts = {}) {
       gl.enable(gl.POLYGON_OFFSET_FILL);
       gl.polygonOffset(1.5, 2);
       for (const d of scene.draws) drawPart(depth, d, scene, a, 'depth');
+      if (env) envPass.drawDepth(env, { model, lightView, lightProj, time: a.time || 0 });
       gl.disable(gl.POLYGON_OFFSET_FILL);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
+    const hdr = !!(env && post && o.post !== false && post.begin(W, H));
     gl.viewport(0, 0, W, H);
     const cc = o.clear || [0, 0, 0, 0];
     gl.clearColor(cc[0], cc[1], cc[2], cc[3]);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    // Suelo: solo sombra y oclusión (fondo transparente).
-    if (o.ground !== false && !o.silhouette) {
+    const blobW = (b.max[0] - b.min[0]) * 0.34;
+    const blobD = Math.max(6, (b.max[2] - b.min[2]) * 0.6);
+    const exposure = o.exposure || 1.0;
+    if (env) {
+      envPass.draw(env, {
+        model, cam, lightVP, light, hdr, exposure, time: a.time || 0, yaw: o.envYaw || 0, shadowTex, shadows,
+        invVP: m4.invert(m4.mul(cam.proj, cam.view)), blob: [lc[0], lc[2], blobW * 1.25, blobD * 1.25],
+        shadowOff: Math.max(0.4, radius * 0.012),
+      });
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+      gl.cullFace(gl.BACK);
+    } else if (o.ground !== false && !o.silhouette) {
       const R2 = radius * 2.2;
       const yG = 0.02;
       const quadPts = [lc[0] - R2, yG, lc[2] - R2, lc[0] + R2, yG, lc[2] - R2, lc[0] + R2, yG, lc[2] + R2, lc[0] - R2, yG, lc[2] - R2, lc[0] + R2, yG, lc[2] + R2, lc[0] - R2, yG, lc[2] + R2];
@@ -692,9 +774,26 @@ export function createRenderer(canvas, opts = {}) {
     gl.uniform3fv(u.uKeyCol, light.keyCol);
     gl.uniform3fv(u.uRimDir, light.rim);
     gl.uniform3fv(u.uRimCol, light.rimCol);
-    gl.uniform3fv(u.uSky, light.sky);
-    gl.uniform3fv(u.uGround, light.ground);
-    gl.uniform1f(u.uExposure, o.exposure || 1.0);
+    const skyAmb = env ? env.look.skyAmb : light.sky;
+    const gndAmb = env ? env.look.groundAmb : light.ground;
+    gl.uniform3fv(u.uSky, skyAmb);
+    gl.uniform3fv(u.uGround, gndAmb);
+    // Entorno que se refleja en la piel y en los ojos.
+    gl.uniform3fv(u.uEnvZen, env ? env.look.zenith : light.sky.map((v) => v * 2.1));
+    gl.uniform3fv(u.uEnvHor, env ? env.look.horizon : light.sky.map((v, i) => v * 2.3 + [0.3, 0.26, 0.2][i] * light.keyCol[i] * 0.4));
+    gl.uniform3fv(u.uEnvGnd, gndAmb.map((v) => v * 1.7));
+    gl.uniform1f(u.uIbl, o.silhouette ? 0 : (o.ibl ?? 1));
+    const under = env && env.look.under;
+    gl.uniform4fv(u.uCaust, [under ? 0.85 : 0, under ? 0.12 / env.info.upm : 0, a.time || 0, 0]);
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+    gl.uniform1i(u.uNoise, 4);
+    // Polvo del suelo en las patas (los que vuelan o nadan no pisan).
+    const dirtCol = env ? env.look.earth.map((v, i) => v * 0.5 + env.look.soilA[i] * 0.3) : [0.2, 0.15, 0.1];
+    const tall = b.max[1] - Math.min(0, b.min[1]);
+    gl.uniform4fv(u.uDirt, [dirtCol[0], dirtCol[1], dirtCol[2], scene.info.floats || o.silhouette ? 0 : tall * 0.2]);
+    gl.uniform1f(u.uExposure, exposure);
+    gl.uniform1f(u.uHdr, hdr ? 1 : 0);
     gl.uniform1f(u.uFlat, o.silhouette ? 1 : 0);
     gl.uniform3fv(u.uFlatCol, (o.silColor || scene.silColor).map((v) => v / 255));
     gl.activeTexture(gl.TEXTURE1);
@@ -710,10 +809,42 @@ export function createRenderer(canvas, opts = {}) {
     gl.uniform1i(u.uMap, 0);
     for (const d of scene.draws) drawPart(lit, d, scene, a, 'main');
     gl.bindVertexArray(null);
+    if (hdr) {
+      const dist = cam.dist || radius * 3;
+      const q = o.fx || {};
+      post.end({
+        near: cam.near, far: cam.far, tanX: cam.tanX, tanY: cam.tanY,
+        focus: [dist + radius * 1.3, dist * 4.2, q.blur ?? 0.8],
+        ao: q.ao ?? 0.85, aoRadius: radius * 0.16,
+        bloom: [env.look.night ? 0.5 : 1.05, env.look.night ? 0.5 : 0.32],
+        vignette: q.vignette ?? 0.3, grain: q.grain ?? 0.014, seed: ((a.time || 0) * 60) % 97,
+        saturation: under ? 1.0 : 1.07, contrast: 1.05,
+      });
+    }
   }
 
+  /**
+   * Escenario para un animal ya subido. o = { biome, phase, camDist, lengthM,
+   * underwater, seed }. Devuelve null si este renderizador no tiene escenario.
+   */
+  function buildEnv(scene, o = {}) {
+    if (!envPass) return null;
+    const b = scene.bounds;
+    const lenU = b.max[0] - b.min[0];
+    const look = envLook(o.biome, o.phase || 'dia', LIGHTS[o.phase] || DAY, { underwater: !!o.underwater });
+    const info = {
+      center: [(b.min[0] + b.max[0]) / 2, (b.min[2] + b.max[2]) / 2],
+      half: [lenU / 2, Math.max(4, (b.max[2] - b.min[2]) / 2)],
+      height: b.max[1] - Math.min(0, b.min[1]),
+      upm: lenU / Math.max(0.2, o.lengthM || 4),
+      camDist: o.camDist || lenU * 2,
+    };
+    return envPass.build(look, info, hashStr(`${o.seed || ''}|${o.biome}`));
+  }
+  function disposeEnv(env) { if (env && envPass) envPass.dispose(env); }
+
   return {
-    gl, canvas, upload, dispose, render, light,
+    gl, canvas, upload, dispose, render, light, buildEnv, disposeEnv, hasEnv: !!envPass, hasPost: !!post,
     destroy() {
       const lose = gl.getExtension('WEBGL_lose_context');
       if (lose) lose.loseContext();

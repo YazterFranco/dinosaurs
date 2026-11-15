@@ -6,7 +6,7 @@ import { buildModel } from './model.js';
 import { createRenderer, m4 } from './gl.js';
 import { defaultGenes } from '../render/dino-svg.js';
 
-export const VERSION = 'r3d-2';
+export const VERSION = 'r3d-3';
 const rad = (d) => (d * Math.PI) / 180;
 
 let support = null;
@@ -62,6 +62,7 @@ export function viewerCamera(scene, W, H, opts = {}) {
   const target = [(b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2 - (b.max[1] - b.min[1]) * 0.04, (b.min[2] + b.max[2]) / 2];
   const fov = rad(opts.fov || 30);
   const az = rad(opts.az ?? 22); const el = rad(opts.el ?? 12);
+  if (opts.lift) target[1] += (b.max[1] - b.min[1]) * opts.lift;
   const dir = [Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)];
   const aspect = W / H;
   const tx = Math.tan(fov / 2) * aspect * 0.9;
@@ -78,7 +79,11 @@ export function viewerCamera(scene, W, H, opts = {}) {
   }
   dist *= opts.zoom || 1;
   const eye = target.map((v, i) => v + dir[i] * dist);
-  return { view: m4.lookAt(eye, target, [0, 1, 0]), proj: m4.persp(fov, aspect, Math.max(1, dist * 0.2), dist * 4), pos: eye, target };
+  const near = Math.max(1, dist * 0.2); const far = dist * (opts.farK || 4);
+  return {
+    view: m4.lookAt(eye, target, [0, 1, 0]), proj: m4.persp(fov, aspect, near, far), pos: eye, target,
+    dist, near, far, tanX: Math.tan(fov / 2) * aspect, tanY: Math.tan(fov / 2),
+  };
 }
 
 // ------------------------------------------------------------ imágenes (sprites)
@@ -288,6 +293,46 @@ export function renderDataUrl(species, genes, opts = {}) {
   return canvas.toDataURL('image/png');
 }
 
+// ------------------------------------------------------------ foto con escenario
+
+let scn = null;
+let scnTimer = 0;
+/**
+ * Foto del animal en su hábitat (cielo, suelo, plantas y posproceso), para la
+ * postal. opts = { biome, phase, w, h, az, el, jaw, walk, stage… }.
+ * Devuelve un data URL JPEG, o null si este equipo no puede con el escenario.
+ */
+export function renderScene(species, genes, opts = {}) {
+  const W = opts.w || 1104; const H = opts.h || 1040;
+  if (!scn) {
+    const canvas = document.createElement('canvas');
+    const r = createRenderer(canvas, { preserve: true, shadowSize: 2048, env: true, post: true });
+    if (!r || !r.hasEnv) return null;
+    canvas.addEventListener('webglcontextlost', () => { scn = null; });
+    scn = { canvas, r };
+  }
+  // El renderizador de fotos ocupa bastante memoria: se suelta si no se usa.
+  clearTimeout(scnTimer);
+  scnTimer = setTimeout(() => { if (scn) { try { scn.r.destroy(); } catch { /* ya perdido */ } scn = null; } }, 25000);
+  const { canvas, r } = scn;
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  const model = buildModel(species, genes || defaultGenes(species), opts);
+  const scene = r.upload(model);
+  const plan = model.info.plan;
+  const stageK = opts.stage === 'cria' ? 0.3 : opts.stage === 'juvenil' ? 0.6 : 1;
+  const cam = viewerCamera(scene, W, H, { fov: 34, az: opts.az ?? 24, el: opts.el ?? (plan === 'flyer' ? -6 : 5), farK: 60, lift: plan === 'flyer' ? 0 : 0.12, zoom: opts.zoom || 1.06 });
+  const env = r.buildEnv(scene, { biome: opts.biome, phase: opts.phase, camDist: cam.dist, lengthM: (species.longitudM || 4) * stageK, underwater: plan === 'swim', seed: species.id });
+  r.render(scene, cam, {
+    env, envYaw: 0, post: true, light: opts.phase, time: 2.4, sway: 1, breath: 1, flapAmt: 1,
+    jawOpen: opts.jaw || 0, pitch: opts.jaw ? 0.16 : 0, walk: opts.walk || 0, walkAmt: opts.walk != null ? 1 : 0,
+    fx: { grain: 0.01, vignette: 0.34 },
+  });
+  const url = canvas.toDataURL('image/jpeg', 0.9);
+  r.disposeEnv(env);
+  r.dispose(scene);
+  return url;
+}
+
 // ------------------------------------------------------------ visor
 
 let hintsShown = 0;
@@ -312,10 +357,19 @@ export function mountViewer(el, species, genes, opts = {}) {
   if (opts.backdrop) { wrap.style.setProperty('--sky', opts.backdrop[0]); wrap.style.setProperty('--haze', opts.backdrop[1]); wrap.style.setProperty('--soil', opts.backdrop[2]); }
   wrap.appendChild(canvas);
   const soft = isSoftwareGL();
-  const r = createRenderer(canvas, { shadowSize: soft ? 1024 : 2048 });
+  // Calidad: 2 = escenario + posproceso · 1 = escenario · 0 = solo el animal.
+  let forced = null;
+  try { forced = localStorage.getItem('dino-refugio-calidad'); } catch { /* sin almacenamiento */ }
+  let quality = opts.biome ? (forced != null && forced !== '' ? Number(forced) : opts.quality ?? 2) : 0;
+  const r = createRenderer(canvas, { shadowSize: soft ? 1024 : 2048, env: quality > 0, post: quality > 1 });
   if (!r) return null;
+  if (!r.hasEnv) quality = 0;
   const model = buildModel(species, genes, opts);
   const scene = r.upload(model);
+  const plan = model.info.plan;
+  const stageK = opts.stage === 'cria' || opts.stage === 'bebe' ? 0.3 : opts.stage === 'juvenil' ? 0.6 : 1;
+  let env = null;
+  if (quality > 0) wrap.classList.add('has-env');
   // Calidad adaptable: si los cuadros tardan, primero se baja la resolución
   // y luego se deja de animar en reposo (solo se redibuja al girarlo).
   let still = reduceMotion() || !!opts.still || soft;
@@ -356,7 +410,12 @@ export function mountViewer(el, species, genes, opts = {}) {
       canvas.style.height = `${h}px`;
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
-      cam = viewerCamera(scene, canvas.width, canvas.height, { turntable: true, zoom: opts.zoom });
+      cam = viewerCamera(scene, canvas.width, canvas.height, quality > 0
+        ? { turntable: true, zoom: opts.zoom, fov: 34, el: plan === 'flyer' ? -4 : 4.5, farK: 60, lift: plan === 'flyer' ? 0 : 0.1 }
+        : { turntable: true, zoom: opts.zoom });
+      if (quality > 0 && !env) {
+        env = r.buildEnv(scene, { biome: opts.biome, phase: opts.phase, camDist: cam.dist, lengthM: (species.longitudM || 4) * stageK, underwater: plan === 'swim', seed: species.id });
+      }
     }
   };
   const frame = (now) => {
@@ -373,7 +432,8 @@ export function mountViewer(el, species, genes, opts = {}) {
       slow = slow * 0.8 + Math.min(600, now - lastDraw) * 0.2;
       drawn += 1;
       if (drawn > 10 && slow > (moving ? 70 : 60)) {
-        if (dprCap > 1) dprCap = 1; else still = true;
+        // Primero se quita el posproceso, luego resolución, luego la animación.
+        if (quality > 1) quality = 1; else if (dprCap > 1) dprCap = 1; else still = true;
         drawn = 0;
         slow = 30;
       }
@@ -409,6 +469,7 @@ export function mountViewer(el, species, genes, opts = {}) {
       jawOpen: open * jawMax * (1 + 0.06 * Math.sin(tr * 46)),
       walk: walkPh,
       walkAmt,
+      env, envYaw: yaw, post: quality > 1,
     });
     if (!started) {
       started = true;
@@ -507,7 +568,7 @@ export function mountViewer(el, species, genes, opts = {}) {
       visible = false;
       if (io) io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
-      try { r.dispose(scene); r.destroy(); } catch { /* ya perdido */ }
+      try { r.disposeEnv(env); r.dispose(scene); r.destroy(); } catch { /* ya perdido */ }
     },
   };
 }

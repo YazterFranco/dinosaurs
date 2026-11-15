@@ -130,7 +130,7 @@ function renderEntry(el, sp, app) {
   const d = DIETS[sp.dieta];
   el.innerHTML = `<a href="#/dinopedia" class="small">← Volver a la Dinopedia</a>
     <div class="entry-hero" style="margin-top:10px">
-      <div class="portrait">${dinoArt(sp, null, { anim: true, viewer: true, viewerKey: `pedia-${sp.id}`, stage: stageView, backdrop: [BIOMES[sp.bioma].cielo[0], BIOMES[sp.bioma].cielo[1], BIOMES[sp.bioma].suelo[0]] })}
+      <div class="portrait">${dinoArt(sp, null, { anim: true, viewer: true, viewerKey: `pedia-${sp.id}`, stage: stageView, biome: sp.bioma, backdrop: [BIOMES[sp.bioma].cielo[0], BIOMES[sp.bioma].cielo[1], BIOMES[sp.bioma].suelo[0]] })}
         <div class="chips stage-chips" role="group" aria-label="Etapa de crecimiento">${STAGES.map(([k, l]) => `<button class="chip" type="button" data-stage="${k}" aria-pressed="${stageView === k}">${l}</button>`).join('')}</div></div>
       <div class="entry-title">
         <h1 class="sci">${esc(sp.nombre)}</h1>

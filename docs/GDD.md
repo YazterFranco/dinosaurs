@@ -375,6 +375,52 @@ van capas cortas de barbas alargadas hacia la cola, las patas quedan escamosas
 solo del tobillo para abajo, y las plumas del ala y de la cola son hojas sueltas
 de un tono más oscuro que el cuerpo.
 
+### 4.2 Escenario y cámara (como el modo foto de *Jurassic World Evolution*)
+
+En la ficha, la Dinopedia y la postal el animal ya no flota sobre un degradado:
+está dentro de un diorama 3D de su hábitat que gira con él.
+
+- **Hábitat (`env.js`).** Todo es procedural, sin archivos de imagen:
+  - *Cielo* con degradado según la hora, nubes en perspectiva que se mueven,
+    estrellas y luna de noche, y sierras y línea de árboles en el horizonte.
+  - *Suelo* con relieve de tres escalas, tierra, musgo y hojarasca; arena con
+    ondas de viento en el desierto; charcos que reflejan el cielo en el
+    pantano; orilla con mar y espuma en la costa.
+  - *Vegetación del Mesozoico*: helechos, colas de caballo y cícadas (casi no
+    existía el pasto), arbustos secos en el desierto y rocas con musgo. Tienen
+    su tamaño real en metros, así que dan la escala: un helecho le llega al
+    tobillo a un *Tyrannosaurus* y tapa a un *Compsognathus*. Se mecen con el
+    viento, dan sombra y la reciben.
+  - *Bajo el agua* para los nadadores: fondo de arena, algas, rayos de luz y
+    cáusticas que se mueven sobre el fondo y sobre el animal.
+  - Cerca del animal nada supera la altura de su lomo y hay una franja libre
+    por donde pasa la cámara, para que al girarlo nada lo tape.
+- **Luz basada en el entorno.** La piel y los ojos reflejan el cielo y el suelo
+  de ese hábitat (aproximación de Karis para móviles), la luz ambiente toma el
+  color del cielo y la que rebota, el del suelo. La piel tiene además manchas
+  suaves de tono (ningún animal es de un solo color) y polvo del suelo en las
+  patas.
+- **Cámara (`post.js`).** La escena se dibuja en alto rango dinámico con
+  antialias y pasa por una cadena de posproceso: oclusión ambiental en
+  pantalla, resplandor (bloom), desenfoque del fondo, mapeo de tonos ACES,
+  viñeta y grano.
+- **Calidad adaptable.** Tres niveles: escenario con posproceso, solo
+  escenario y solo el animal. Si los cuadros tardan, el visor baja un nivel,
+  luego la resolución y por último deja de animar en reposo. Sin soporte de
+  texturas de coma flotante se dibuja directo, sin posproceso.
+- **Por qué no Three.js.** Se evaluó; el motor propio ya tenía sombras,
+  dispersión bajo la piel y plumas por capas hechas a medida, y pesa una
+  fracción. Las técnicas que hacen "real" una escena (luz del entorno, HDR,
+  mapeo de tonos, sombras suaves, oclusión) se añadieron aquí mismo. Si algún
+  día hacen falta modelos esculpidos (glTF) o física, Three.js sería el paso.
+
+### 4.3 Compilación
+
+`npm run build` (esbuild) empaqueta y minimiza el juego en `dist/`: de 40
+archivos a 4, con el motor 3D en un trozo aparte que se carga después, los
+sombreadores GLSL compactados y un `sw.js` generado con la lista exacta de
+archivos. El juego sigue funcionando sin compilar.
+
 ## 5. Referencias
 
 **Jugabilidad**

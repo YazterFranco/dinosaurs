@@ -20,6 +20,11 @@ function stageBg(s, d, sp) {
   const b = BIOMES[(rec && rec.bioma) || sp.bioma] || BIOMES[sp.bioma];
   return [b.cielo[0], b.cielo[1], b.suelo[0]];
 }
+/** Hábitat donde vive: el del recinto o, si no tiene, el natural de su especie. */
+function biomeOf(s, d, sp) {
+  const rec = s.recintos.find((r) => r.id === d.recinto);
+  return rec && BIOMES[rec.bioma] ? rec.bioma : sp.bioma;
+}
 
 const REQ = { comida: ['🍽️', 'Tiene hambre de algo rico'], caricia: ['🤚', 'Quiere caricias'], juego: ['⚽', 'Quiere jugar'] };
 let tab = 'cuidado';
@@ -41,7 +46,7 @@ function draw(app, id, first = false) {
   const title = `${esc(d.nombre)} <span class="muted small">${d.genes.sexo === 'M' ? '♂ macho' : '♀ hembra'}</span>`;
   const html = `
     <div class="portrait" id="dino-portrait">
-      ${dinoArt(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio, viewer: true, viewerKey: `ficha-${d.id}`, title: `${d.nombre}, ${sp.nombre}`, phase: dayPhase().id, backdrop: stageBg(s, d, sp) })}
+      ${dinoArt(sp, d.genes, { stage, anim: !asleep, sleeping: asleep, mood: G.moodOf(d, s.tiempoJuego), accesorio: d.accesorio, viewer: true, viewerKey: `ficha-${d.id}`, title: `${d.nombre}, ${sp.nombre}`, phase: dayPhase().id, backdrop: stageBg(s, d, sp), biome: biomeOf(s, d, sp) })}
       ${d.peticion ? `<span class="bubble">${REQ[d.peticion.tipo][0]} ${REQ[d.peticion.tipo][1]}</span>` : ''}
     </div>
     <div class="portrait-meta"><p class="small muted">${esc(sp.nombre)} · ${stageLabel(stage)} · <a href="#/dinopedia/${sp.id}">Ver en la Dinopedia</a></p>

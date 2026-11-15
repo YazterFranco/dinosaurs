@@ -624,8 +624,8 @@ export const SPECIES = [
     favoritos: ['ginkgo', 'plantas_flor'],
     stats: { tamano: 70, fuerza: 70, velocidad: 25, vitalidad: 70, intelecto: 45 },
     look: {
-      plan: 'biped', body: [34, 26], neck: [32, 58, 10], head: { type: 'beak', s: 0.75 },
-      tail: [26, 12], leg: [32, 12], arm: [32], colors: [30, 50], feat: { feathers: 'full', bigClaws: true, potBelly: true },
+      plan: 'biped', body: [35, 22], neck: [46, 60, 7], head: { type: 'beak', s: 0.72 },
+      tail: [30, 11], leg: [34, 11], arm: [34], colors: [30, 50], feat: { feathers: 'full', bigClaws: true, potBelly: true },
     },
   },
   {

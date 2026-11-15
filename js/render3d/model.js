@@ -175,7 +175,7 @@ export function buildModel(species, genes, opts = {}) {
   if (plan === 'biped') {
     cy = -(legLen * 0.98 + ry * 0.3);
     tilt = feat.lowStance ? 2 : 5 + (neckAng > 45 ? 5 : 0);
-    if (feat.potBelly) tilt = 20;
+    if (feat.potBelly) tilt = 15;
   } else if (quad) {
     const front = plan === 'semi' ? Math.max(armLen, legLen * 0.62) : legLen * (feat.frontHigh ? 1.35 : feat.hindHigh ? 0.72 : 1);
     const hind = legLen * (feat.hindHigh ? 1.15 : 1);
@@ -238,7 +238,9 @@ export function buildModel(species, genes, opts = {}) {
     const t = i / 5;
     const bow = Math.sin(t * Math.PI) * (neckLen > 30 ? -neckLen * 0.07 : 0);
     neckPts.push([nb[0] + dir[0] * nl * t + perp[0] * bow, nb[1] + dir[1] * nl * t + perp[1] * bow]);
-    const w = lerp(Math.max(neckW * 0.9, ry * 0.72), endHalf, t ** 0.8);
+    // Los cuellos largos de bípedo se afinan pronto (no son un cono grueso).
+    const slim = plan === 'biped' && neckLen > 28;
+    const w = lerp(Math.max(neckW * 0.9, ry * (slim ? 0.56 : 0.72)), slim ? Math.min(endHalf, neckW * 0.62) : endHalf, t ** (slim ? 0.42 : 0.8));
     nTop.push(w * 0.92);
     nBot.push(w * (plan === 'biped' ? 1.12 : 1.02));
   }

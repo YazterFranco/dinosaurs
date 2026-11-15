@@ -3,7 +3,8 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 
-const root = resolve(new URL('..', import.meta.url).pathname);
+// Uso: node scripts/serve.mjs [puerto] [carpeta] — la carpeta (p. ej. dist) es opcional.
+const root = resolve(new URL('..', import.meta.url).pathname, process.argv[3] || '.');
 const port = Number(process.argv[2] || process.env.PORT || 5173);
 const types = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',

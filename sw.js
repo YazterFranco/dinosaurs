@@ -3,7 +3,7 @@
 // sin conexión, lo que está en caché. Las fuentes se guardan al usarse.
 // La lista de archivos se revisa en tests/unit/pwa.test.js.
 
-const CACHE = 'dino-refugio-v6';
+const CACHE = 'dino-refugio-v7';
 const ASSETS = [
   './',
   './css/styles.css',
@@ -22,10 +22,12 @@ const ASSETS = [
   './js/render/art.js',
   './js/render/dino-svg.js',
   './js/render3d/accessories3d.js',
+  './js/render3d/env.js',
   './js/render3d/geometry.js',
   './js/render3d/gl.js',
   './js/render3d/index.js',
   './js/render3d/model.js',
+  './js/render3d/post.js',
   './js/render3d/textures.js',
   './js/store.js',
   './js/systems/calendar.js',

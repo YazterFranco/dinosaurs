@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor 3D</title>
+<link rel="stylesheet" href="../css/styles.css">
+<style>
+  body { margin: 0; padding: 8px; background: #e9efe6; font: 13px system-ui, sans-serif; }
+  #g { display: grid; gap: 8px; }
+  figure { margin: 0; text-align: center; }
+</style>
+</head>
+<body>
+<div id="g"></div>
+<script type="module">
+// Herramienta de desarrollo: el visor con su escenario, tal como sale en la ficha.
+// ?only=a,b  &phase=dia,atardecer  &yaw=0,2  &w=520  &cols=2  &stage=  &env=0
+import { SPECIES } from '../js/data/species.js';
+import { BIOMES } from '../js/data/world.js';
+import { mountViewer } from '../js/render3d/index.js';
+import { defaultGenes } from '../js/render/dino-svg.js';
+const q = new URLSearchParams(location.search);
+const only = (q.get('only') || 'tyrannosaurus').split(',');
+const phases = (q.get('phase') || 'dia').split(',');
+const yaws = (q.get('yaw') || '0').split(',').map(Number);
+const w = Number(q.get('w') || 520);
+const g = document.getElementById('g');
+g.style.gridTemplateColumns = `repeat(${q.get('cols') || Math.min(3, only.length * phases.length * yaws.length)}, ${w}px)`;
+let n = 0; let total = 0;
+for (const id of only) for (const phase of phases) for (const yaw of yaws) {
+  const sp = SPECIES.find((s) => s.id === id);
+  if (!sp) continue;
+  total += 1;
+  const b = BIOMES[q.get('bioma') || sp.bioma];
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<span class="dino-art dino-viewer"></span><figcaption>${sp.nombre} · ${phase} · ${yaw}</figcaption>`;
+  g.appendChild(fig);
+  const v = mountViewer(fig.firstChild, sp, defaultGenes(sp), {
+    stage: q.get('stage') || 'adulto', phase, yaw, maxWidth: w, aspect: 1.5, noHint: true, still: q.get('still') !== '0',
+    quality: Number(q.get('q') ?? 2), backdrop: [b.cielo[0], b.cielo[1], b.suelo[0]], biome: q.get('env') === '0' ? null : (q.get('bioma') || sp.bioma),
+  });
+  const wait = () => { if (fig.querySelector('.dino-3d')) { n += 1; if (n === total) setTimeout(() => { document.title = 'listo'; }, 600); } else setTimeout(wait, 100); };
+  if (v) wait(); else { fig.textContent = 'sin WebGL2'; n += 1; }
+}
+</script>
+</body>
+</html>

@@ -105,7 +105,7 @@ function hydrateOne(el) {
   const { species, opts } = job;
   const genes = job.genes || defaultGenes(species);
   if (opts.viewer) {
-    const look = lib.spriteKey(species, genes, { ...opts, size: 'viewer' }) + (opts.backdrop ? opts.backdrop.join() : '');
+    const look = lib.spriteKey(species, genes, { ...opts, size: 'viewer' }) + (opts.backdrop ? opts.backdrop.join() : '') + (opts.biome || '');
     const vkey = opts.viewerKey || null;
     const prev = vkey ? viewers.get(vkey) : null;
     if (prev && prev.look === look && prev.canvas) {
@@ -170,4 +170,12 @@ export async function dinoPngDataUrl(species, genes, opts) {
   const m = await load3D();
   if (!m) return null;
   try { return m.renderDataUrl(species, genes || defaultGenes(species), opts); } catch { return null; }
+}
+
+/** Foto del dinosaurio dentro de su hábitat en 3D (o null si no se puede). */
+export async function dinoSceneDataUrl(species, genes, opts) {
+  if (!is3DOn()) return null;
+  const m = await load3D();
+  if (!m || !m.renderScene) return null;
+  try { return m.renderScene(species, genes || defaultGenes(species), opts); } catch { return null; }
 }

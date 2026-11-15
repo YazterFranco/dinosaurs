@@ -55,6 +55,24 @@ npm start            # http://localhost:5173
 Los módulos ES no funcionan abriendo `index.html` con doble clic (`file://`);
 usa el servidor incluido o GitHub Pages.
 
+## Compilar para publicar
+
+El juego funciona tal cual, sin compilar. Para publicarlo más ligero hay un
+paso opcional con [esbuild](https://esbuild.github.io/):
+
+```bash
+npm install          # instala esbuild (y Playwright para las pruebas)
+npm run build        # deja el juego empaquetado y minimizado en dist/
+npm run preview      # compila y lo sirve en http://localhost:5175
+```
+
+`dist/` trae los 40 archivos de código reunidos en 4 (unos 690 kB pasan a
+460 kB; 160 kB comprimidos), con nombres que cambian cuando cambia el
+contenido, los sombreadores compactados y su propio `sw.js`. El motor 3D va
+en un archivo aparte que se descarga después de que la interfaz ya está en
+pantalla. Para publicar esa versión, sube el contenido de `dist/` en vez de la
+raíz del repositorio.
+
 ## Jugar en la web e instalar como app
 
 **1. Publicar la página (una sola vez).** En GitHub: *Settings → Pages →
@@ -78,7 +96,7 @@ para pasarla.
 ## Pruebas
 
 ```bash
-npm test             # pruebas unitarias (node:test): genética, cuidado, cría, excavación, datos, modelos 3D
+npm test             # pruebas unitarias (node:test): genética, cuidado, cría, excavación, datos, modelos y escenario 3D
 npm install          # instala @playwright/test
 npx playwright install chromium
 npm run test:e2e     # pruebas E2E en móvil (Pixel 7) y escritorio
@@ -106,12 +124,14 @@ js/render/dino-svg.js    Ilustración paramétrica de dinosaurios y huevos (resp
 js/render/art.js         Elige entre 3D y dibujo, y cambia uno por otro sin que se note
 js/render3d/             Motor 3D: modelos procedurales (model.js), geometría,
                          texturas, sombreadores WebGL2 (gl.js), accesorios,
-                         imágenes en caché y visor giratorio (index.js)
+                         escenario del hábitat (env.js), posproceso de cámara
+                         (post.js), imágenes en caché, visor giratorio y fotos (index.js)
 js/ui/views/             Pantallas: parque, criadero, excavar, dinopedia, más, quiz, concursos
 docs/GDD.md              Documento de diseño y referencias
 dev/gallery.html         Galería de todas las especies (útil al ajustar el dibujo)
 dev/gallery3d.html       Galería 3D (?only=, stage=, acc=, viewer=1, size=lg...)
-scripts/                 Servidor local, simulación de economía y generador de íconos
+dev/viewer.html          El visor con su escenario (?only=, phase=, bioma=, yaw=, w=, q=0|1|2)
+scripts/                 Servidor local, compilación (build.mjs), simulación de economía y generador de íconos
 sw.js, manifest.webmanifest  App instalable y modo sin conexión
 tests/                   Unitarias y E2E
 ```
