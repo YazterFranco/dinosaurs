@@ -1,6 +1,6 @@
 {
   "name": "dino-refugio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Juego web educativo para excavar fósiles, criar dinosaurios y aprender sobre ellos.",
   "private": true,
   "type": "module",

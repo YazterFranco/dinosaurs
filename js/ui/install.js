@@ -8,7 +8,13 @@ export const PUBLIC_URL = 'https://yazterfranco.github.io/dinosaurs/';
 let deferred = null;
 const listeners = new Set();
 
+/** true dentro de la app de Android (android/): allí el teléfono presta funciones como guardar en la galería. */
+export function isAndroidApp() {
+  return typeof window !== 'undefined' && !!window.DinoAndroid;
+}
+
 export function isStandalone() {
+  if (isAndroidApp()) return true;
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 

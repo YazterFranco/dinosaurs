@@ -121,8 +121,21 @@ export function openPostcard(app, dinoId, onBack) {
     app.sfx.tap();
     shoot(b.dataset.pose);
   }));
+  // En la app de Android el navegador interno no descarga ni comparte: se lo
+  // pedimos al teléfono, que guarda la postal en la galería.
+  const toPhone = async (share) => {
+    const blob = await toPng(svg);
+    const b64 = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+      fr.onerror = () => reject(fr.error);
+      fr.readAsDataURL(blob);
+    });
+    window.DinoAndroid.guardarImagen(file, b64, !!share);
+  };
   const download = async () => {
     try {
+      if (window.DinoAndroid) { await toPhone(false); return; }
       const blob = await toPng(svg);
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -137,6 +150,7 @@ export function openPostcard(app, dinoId, onBack) {
   body.querySelector('[data-save]').addEventListener('click', download);
   body.querySelector('[data-share]').addEventListener('click', async () => {
     try {
+      if (window.DinoAndroid) { await toPhone(true); return; }
       const blob = await toPng(svg);
       const f = new File([blob], file, { type: 'image/png' });
       if (navigator.canShare && navigator.canShare({ files: [f] })) {

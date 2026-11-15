@@ -1,0 +1,75 @@
+plugins {
+    id 'com.android.application'
+}
+
+// La versión sale del package.json del juego: una sola fuente de verdad.
+def juego = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json'))
+def partes = juego.version.tokenize('.').collect { it as int }
+
+android {
+    namespace 'com.yazterfranco.dinorefugio'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.yazterfranco.dinorefugio'
+        minSdk 24
+        targetSdk 34
+        versionCode partes[0] * 10000 + partes[1] * 100 + partes[2]
+        versionName juego.version
+    }
+
+    // Llave incluida en el repositorio para que cualquier compilación (la tuya
+    // o la automática de GitHub) lleve la misma firma y la app se actualice
+    // sin desinstalar. No es secreta: sirve para instalar a mano, no para
+    // publicar en Google Play (allí hace falta una llave privada propia).
+    signingConfigs {
+        dino {
+            storeFile file('dino-refugio.keystore')
+            storePassword 'dinorefugio'
+            keyAlias 'dinorefugio'
+            keyPassword 'dinorefugio'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.dino
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.dino
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    // El juego se copia a build/generated/juego/www y viaja como "assets".
+    sourceSets {
+        main {
+            assets.srcDirs += ["${layout.buildDirectory.get().asFile}/generated/juego"]
+        }
+    }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach { output ->
+            output.outputFileName = "DinoRefugio-${variant.versionName}-${variant.buildType.name}.apk"
+        }
+    }
+}
+
+// Copia el juego (la raíz del repositorio) dentro de la app antes de compilar.
+def copiarJuego = tasks.register('copiarJuego', Sync) {
+    from(rootProject.file('..')) {
+        include 'index.html', 'manifest.webmanifest', 'css/**', 'js/**', 'icons/**'
+    }
+    into layout.buildDirectory.dir('generated/juego/www')
+}
+tasks.named('preBuild') { dependsOn copiarJuego }

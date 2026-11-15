@@ -1,0 +1,4 @@
+// Proyecto Android de Dino Refugio: una app que lleva el juego web dentro.
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}

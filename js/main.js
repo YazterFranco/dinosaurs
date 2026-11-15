@@ -251,6 +251,7 @@ setupInstall();
 start3D();
 // El visor 3D avisa cuando el dinosaurio ruge: aquí se le pone la voz.
 document.addEventListener('dino-roar', (e) => { sfx.voice(e.detail.species.longitudM, e.detail.stage === 'cria'); });
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+// (En la app de Android los archivos ya van dentro: no hace falta service worker.)
+if ('serviceWorker' in navigator && !window.DinoAndroid && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo sin conexión */ }));
 }
