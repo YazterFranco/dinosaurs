@@ -105,9 +105,9 @@ function shapeF(u, p) {
 
 // Ancho de la cabeza (proporción del alto) de la nuca (t = 0) al hocico (t = 1).
 const HEAD_WIDTH = {
-  boxy: [[0, 0.86], [0.3, 0.82], [0.62, 0.56], [1, 0.42]],
-  short: [[0, 0.9], [0.5, 0.78], [1, 0.56]],
-  slim: [[0, 0.95], [0.4, 0.74], [1, 0.42]],
+  boxy: [[0, 0.8], [0.2, 0.9], [0.45, 0.66], [0.72, 0.46], [1, 0.36]],
+  short: [[0, 0.84], [0.25, 0.9], [0.6, 0.66], [1, 0.46]],
+  slim: [[0, 0.88], [0.22, 0.86], [0.55, 0.56], [1, 0.34]],
   croc: [[0, 0.95], [0.3, 0.6], [0.82, 0.36], [0.94, 0.5], [1, 0.36]],
   small: [[0, 0.98], [0.6, 0.85], [1, 0.66]],
   duck: [[0, 0.92], [0.45, 0.68], [0.8, 0.86], [1, 0.78]],
@@ -146,16 +146,18 @@ export function buildModel(species, genes, opts = {}) {
   const push = (mesh, mat, extra = {}) => { if (mesh && mesh.count) parts.push({ mesh, mat, ...extra }); };
 
   const baby = stage === 'cria' ? 1 : stage === 'juvenil' ? 0.5 : 0;
-  const headS = (look.head.s || 1) * 0.97 * (1 + 0.4 * baby);
+  const headS = (look.head.s || 1) * (look.head.type === 'boxy' ? 0.91 : 0.97) * (1 + 0.4 * baby);
   const [rx0, ry0] = look.body;
   const rx = rx0 * (1 - 0.12 * baby);
-  const ry = ry0 * (1 - 0.04 * baby);
+  // Los cazadores bípedos son más esbeltos en 3D que en el dibujo plano.
+  const ry = ry0 * (1 - 0.04 * baby) * (look.plan === 'biped' && !feat.potBelly && (HEADS[look.head.type] || {}).kind === 'theropod' ? 0.9 : 1);
   const neckLen = look.neck[0] * (1 - 0.3 * baby);
   const neckAng = look.neck[1];
   const neckW = look.neck[2];
   const tailLen = look.tail[0] * (1 - 0.28 * baby);
   const tailW = look.tail[1];
-  const legLen = look.leg[0] * (1 - 0.1 * baby);
+  // En 3D los bípedos van algo más altos de patas que en el dibujo plano.
+  const legLen = look.leg[0] * (1 - 0.1 * baby) * (look.plan === 'biped' ? 1.1 : 1);
   const legW = look.leg[1] * (1 + 0.1 * baby);
   const armLen = (look.arm ? look.arm[0] : 0) * (1 - 0.1 * baby);
   const plan = look.plan;
@@ -206,14 +208,16 @@ export function buildModel(species, genes, opts = {}) {
     else if (plan === 'swim') y = Math.sin((1 - t) * Math.PI * 1.2) * 3;
     else if (plan === 'flyer') y = 1;
     else y = ry * 0.12 + (1 - t) ** 1.4 * tailLen * 0.2;
-    const h = lerp(0.7, Math.max(tailW * 0.62, 2), t ** 1.25) + (t > 0.85 ? ((t - 0.85) / 0.15) * ry * 0.22 : 0);
+    // La cola de los bípedos es alta en la base: ahí va el músculo que mueve la pata.
+    const h = lerp(0.7, Math.max(tailW * (plan === 'biped' ? 0.7 : 0.62), 2), t ** (plan === 'biped' ? 1.05 : 1.25)) + (t > 0.85 ? ((t - 0.85) / 0.15) * ry * 0.22 : 0);
     spineL.push([x, y]);
     top.push(h * (feat.paddleTail ? 1.35 : 1));
     bot.push(h * 1.05 * (feat.paddleTail ? 1.3 : 1));
   }
   const bodyX = [-rx * 0.55, -rx * 0.18, rx * 0.22, rx * 0.56, rx * 0.86];
-  const bodyTop = [ry * 0.88, ry * 0.98, ry * 0.97, ry * 0.86, ry * 0.6];
-  const bodyBot = [ry * 0.8, ry * 1.02 * bellyF, ry * 1.0 * bellyF, ry * 0.86, ry * 0.56];
+  const thBody = plan === 'biped' && !feat.potBelly;
+  const bodyTop = thBody ? [ry * 0.92, ry * 1.0, ry * 0.96, ry * 0.84, ry * 0.58] : [ry * 0.88, ry * 0.98, ry * 0.97, ry * 0.86, ry * 0.6];
+  const bodyBot = thBody ? [ry * 0.7, ry * 0.9, ry * 1.06, ry * 0.98, ry * 0.6] : [ry * 0.8, ry * 1.02 * bellyF, ry * 1.0 * bellyF, ry * 0.86, ry * 0.56];
   bodyX.forEach((x, i) => { spineL.push([x, 0]); top.push(bodyTop[i]); bot.push(bodyBot[i]); });
   const spine = spineL.map(([x, y]) => R(x, y));
   const { dorsal, ventral } = offsets2(spine, top, bot);
@@ -241,8 +245,10 @@ export function buildModel(species, genes, opts = {}) {
     // Los cuellos largos de bípedo se afinan pronto (no son un cono grueso).
     const slim = plan === 'biped' && neckLen > 28;
     const w = lerp(Math.max(neckW * 0.9, ry * (slim ? 0.56 : 0.72)), slim ? Math.min(endHalf, neckW * 0.62) : endHalf, t ** (slim ? 0.42 : 0.8));
-    nTop.push(w * 0.92);
-    nBot.push(w * (plan === 'biped' ? 1.12 : 1.02));
+    // Los bípedos de cuello corto lo llevan más fino que la cabeza y el pecho.
+    const waist = plan === 'biped' && !slim ? 1 - 0.2 * Math.sin(Math.PI * clamp(t * 1.15, 0, 1)) ** 1.5 : 1;
+    nTop.push(w * 0.92 * waist);
+    nBot.push(w * (plan === 'biped' ? 1.12 : 1.02) * waist);
   }
   const nOff = offsets2(neckPts, nTop, nBot);
   const neckPoly = catmullClosed([...nOff.dorsal, ne, ...nOff.ventral.slice().reverse()], 6);
@@ -429,10 +435,23 @@ export function buildModel(species, genes, opts = {}) {
   };
   // El cráneo es más estrecho arriba que en las mejillas, sobre todo en el
   // hocico de los terópodos (de frente se ve como una "A").
-  const topNarrow = { boxy: 0.34, short: 0.3, slim: 0.3, croc: 0.3, dome: 0.1, armored: 0.05, horned: 0.22, duck: 0.2, ptero: 0.25 }[look.head.type] ?? 0.16;
+  const topNarrow = { boxy: 0.5, short: 0.44, slim: 0.42, croc: 0.36, dome: 0.1, armored: 0.05, horned: 0.22, duck: 0.2, ptero: 0.25 }[look.head.type] ?? 0.16;
   const boxyHead = ['boxy', 'short', 'croc', 'armored'].includes(look.head.type);
   const exH = boxyHead ? 0.72 : 0.86;
-  const narrowAt = (t, up) => 1 - topNarrow * smoothstep(0.05, 0.55, t) * smoothstep(0, 1, up);
+  // Escultura del cráneo de los cazadores: un hueco a cada lado del hocico
+  // (la fosa delante del ojo), otro detrás del ojo, y abajo el bulto de los
+  // músculos que cierran la mandíbula.
+  const thero = head.kind === 'theropod';
+  const hollowK = !thero ? 0 : look.head.type === 'croc' ? 0.1 : 0.2;
+  const bell = (v, c, w) => Math.exp(-((v - c) ** 2) / (2 * w * w));
+  const sculpt = (t, up) => 1 - hollowK * bell(t, 0.6, 0.15) * bell(up, 0.32, 0.3)
+    - hollowK * 0.55 * bell(t, 0.1, 0.07) * bell(up, 0.35, 0.3)
+    + hollowK * 0.5 * bell(t, 0.2, 0.12) * bell(up, -0.35, 0.35);
+  // De frente el cráneo es una "A": techo estrecho, mejillas anchas y la
+  // mandíbula metida hacia dentro.
+  const lowNarrow = thero ? 0.3 : 0;
+  const narrowAt = (t, up) => (1 - topNarrow * (thero ? lerp(0.55, 1, smoothstep(0.0, 0.5, t)) : smoothstep(0.05, 0.55, t)) * smoothstep(-0.1, 1, up))
+    * (1 - lowNarrow * smoothstep(-0.15, -1, up)) * sculpt(t, up);
   const headZ = (x, yUp) => {
     const s = headSection(x);
     if (!s) return 0;
@@ -607,8 +626,38 @@ export function buildModel(species, genes, opts = {}) {
   });
   if (head.brow) {
     for (const side of [1, -1]) {
+      // Ceja ósea sobre el ojo; en los cazadores es más gruesa, baja hacia el
+      // hocico y lleva otro bulto detrás del ojo (le da la mirada de depredador).
+      const k = thero ? 1.3 : 1;
       const c = H3([ex + 0.6, eyeUp + eyeR * 1.05, (eyeSurfZ * 0.86) * side]);
-      push(ellipsoid(c, [eyeR * 1.7 * headS, eyeR * 0.55 * headS, eyeR * 0.75 * headS], { X: norm(sub(H3([ex + 2, eyeUp + eyeR * 1.05, eyeSurfZ * 0.86 * side]), c)), lat: 6, lon: 10 }), 'skin');
+      const along = thero ? [ex + 2.6, eyeUp + eyeR * 0.75, eyeSurfZ * 0.8 * side] : [ex + 2, eyeUp + eyeR * 1.05, eyeSurfZ * 0.86 * side];
+      push(ellipsoid(c, [eyeR * 1.7 * k * headS, eyeR * 0.55 * k * headS, eyeR * 0.75 * k * headS], { X: norm(sub(H3(along), c)), lat: 6, lon: 10 }), 'skin');
+      if (thero) {
+        const bx = ex - eyeR * 1.5; const by = eyeUp + eyeR * 0.5;
+        push(ellipsoid(H3([bx, by, headZ(bx, by) * 0.9 * side]), [eyeR * 0.9 * headS, eyeR * 0.85 * headS, eyeR * 0.6 * headS], { lat: 6, lon: 10 }), 'skin');
+      }
+    }
+  }
+  // Fosas nasales: un pequeño hoyo oscuro a cada lado de la punta del hocico.
+  if (head.nose && !head.beak && !opts.silhouette) {
+    const [nx, ny] = head.nose;
+    const nr = clamp(head.len * 0.022, 0.45, 0.85);
+    for (const side of [1, -1]) {
+      const zc = headZ(nx, -ny) * 0.96 * side;
+      const c = H3([nx, -ny, zc]);
+      push(ellipsoid(c, [nr * 1.5 * headS, nr * 0.8 * headS, nr * 0.55 * headS], { X: norm(sub(H3([nx + 1, -ny + 0.35, zc]), c)), lat: 5, lon: 8 }).tint([0.16, 0.13, 0.12, 1]), 'shade');
+    }
+  }
+  // Rugosidades a lo largo del hocico (los grandes cazadores de cabeza alta).
+  if (thero && look.head.type === 'boxy') {
+    for (let i = 0; i < 6; i += 1) {
+      const x = lerp(hR[0] + (hR[1] - hR[0]) * 0.5, hR[0] + (hR[1] - hR[0]) * 0.88, i / 5);
+      const sct = headSection(x);
+      if (!sct) continue;
+      const yTop = sct.c + sct.h * 0.96;
+      for (const side of [1, -1]) {
+        push(ellipsoid(H3([x, yTop, headZ(x, sct.c + sct.h * 0.8) * 0.55 * side]), [1.5 * headS, 0.55 * headS, 0.8 * headS], { lat: 5, lon: 8 }), 'skin');
+      }
     }
   }
   if (feat.frill) {
@@ -776,14 +825,15 @@ export function buildModel(species, genes, opts = {}) {
     // Tres dedos (II, III, IV) abiertos en abanico, con garras.
     const toes = [[-0.38, 0.8], [0, 1], [0.34, 0.85]];
     toes.forEach(([a, k]) => {
-      const len = L * 0.2 * k;
+      const len = L * 0.27 * k;
       const d = [Math.cos(a), 0, Math.sin(a) * side];
       const p0 = [ball[0], ball[1], ball[2]];
       const p1 = [ball[0] + d[0] * len * 0.45, ball[1] * 0.55, ball[2] + d[2] * len * 0.45];
       const p2 = [ball[0] + d[0] * len * 0.85, Math.max(w * 0.12, 0.5), ball[2] + d[2] * len * 0.85];
       const p3 = [ball[0] + d[0] * len, Math.max(w * 0.1, 0.45), ball[2] + d[2] * len];
-      const rr = w * 0.21;
-      pushL(tube([p0, p1, p2, p3], [rr * 1.3, rr * 1.05, rr * 0.9, rr * 0.7], { sides: 10, cap: true, squash: [1, 0.8], uvUnit: skinTile }).tint(limbCol), isFar ? 'limbFar' : 'limb');
+      const rr = w * 0.24;
+      // Dedo con las almohadillas de cada falange marcadas.
+      pushL(tube([p0, p1, p2, p3], (tt) => rr * (1.3 - 0.55 * tt) * (1 + 0.14 * Math.sin(tt * Math.PI * 5.2) ** 2), { sides: 10, cap: true, squash: [1, 0.8], uvUnit: skinTile, samples: 22 }).tint(limbCol), isFar ? 'limbFar' : 'limb');
       claw(p3, [d[0], -0.55, d[2]], Math.max(1.6, w * 0.44), rr * 0.75, 0.9, norm(cross([d[0], 0, d[2]], [0, 1, 0])));
     });
     if (feat.sickle) {
@@ -793,12 +843,14 @@ export function buildModel(species, genes, opts = {}) {
   };
   const quadFoot = (p, w, side, nails, thumb, hooves, isFar) => {
     // Pie columnar con almohadilla y uñas anchas.
-    const pad = ellipsoid([p[0] + w * 0.1, w * 0.3, p[2]], [w * 0.66, w * 0.32, w * 0.58], { lat: 8, lon: 14 });
+    // La almohadilla apenas sobresale de la pata (no es una zarpa de peluche)
+    // y las uñas son pezuñas chatas medio hundidas en el borde de delante.
+    const pad = ellipsoid([p[0] + w * 0.07, w * 0.25, p[2]], [w * 0.55, w * 0.27, w * 0.5], { lat: 8, lon: 14 });
     pushL(pad.tint(limbCol), isFar ? 'limbFar' : 'limb');
     for (let k = 0; k < nails; k += 1) {
-      const a = nails === 1 ? 0 : (k - (nails - 1) / 2) * 0.55;
-      const c = [p[0] + w * 0.6 * Math.cos(a), w * (hooves ? 0.2 : 0.16), p[2] + w * 0.52 * Math.sin(a)];
-      const nail = ellipsoid(c, [w * (hooves ? 0.26 : 0.18), w * (hooves ? 0.2 : 0.15), w * (hooves ? 0.2 : 0.15)], { lat: 6, lon: 10 });
+      const a = nails === 1 ? 0 : (k - (nails - 1) / 2) * 0.62;
+      const c = [p[0] + w * 0.5 * Math.cos(a), w * (hooves ? 0.2 : 0.17), p[2] + w * 0.44 * Math.sin(a)];
+      const nail = ellipsoid(c, [w * (hooves ? 0.24 : 0.2), w * (hooves ? 0.2 : 0.17), w * (hooves ? 0.19 : 0.15)], { X: [Math.cos(a), -0.35, Math.sin(a)], lat: 6, lon: 10 });
       pushL(keratin(nail), 'claw');
     }
     if (thumb) claw([p[0] + w * 0.4, w * 0.75, p[2] - side * w * 0.35], [0.5, 0.4, -side * 0.6], w * 0.7, w * 0.16, 0.6);
@@ -814,18 +866,21 @@ export function buildModel(species, genes, opts = {}) {
       const h = [hip[0] + stride, hip[1]];
       const L = -h[1];
       const zh = zHip(h[0], -h[1] + ry * 0.2);
-      const knee = [h[0] + L * 0.2, h[1] + L * 0.44];
-      const ankle = [h[0] + L * 0.01 + stride * 0.2, -L * 0.2];
-      const ball = [ankle[0] + L * 0.12, -legW * 0.32];
+      // Pata de ave: rodilla adelantada, tobillo alto y atrás, y un metatarso
+      // largo: caminaban sobre los dedos.
+      const knee = [h[0] + L * 0.25, h[1] + L * 0.4];
+      const ankle = [h[0] - L * 0.05 + stride * 0.2, -L * 0.3];
+      const ball = [ankle[0] + L * 0.15, -legW * 0.3];
       const zK = zh * 1.02; const zA = zh * 0.92; const zB = zh * 0.86;
       const thighTop = [h[0] - ry * 0.12, h[1] - ry * 0.5];
       legNow = newLeg(h, knee, ankle, isFar ? Math.PI : 0, 1);
       // Muslo: nace dentro del cuerpo y baja hasta la rodilla.
-      limbTube([P3([thighTop[0], thighTop[1] + ry * 0.15], zh * 0.25 * side), P3([h[0] - ry * 0.02, h[1] - ry * 0.05], zh * 0.62 * side), P3([h[0] + L * 0.06, h[1] + L * 0.17], zh * 0.9 * side), P3(knee, zK * side)], [ry * 0.32, ry * 0.52, ry * 0.44, legW * 0.6], mf, [0.72, 1], [0, 1]);
+      limbTube([P3([thighTop[0], thighTop[1] + ry * 0.15], zh * 0.25 * side), P3([h[0] - ry * 0.02, h[1] - ry * 0.05], zh * 0.62 * side), P3([h[0] + L * 0.06, h[1] + L * 0.17], zh * 0.9 * side), P3(knee, zK * side)], [ry * 0.34, ry * 0.6, ry * 0.52, legW * 0.64], mf, [0.72, 1], [0, 1]);
       // Espinilla con la pantorrilla abultada hacia atrás.
-      const calf = [lerp(knee[0], ankle[0], 0.3) - legW * 0.14, lerp(knee[1], ankle[1], 0.3)];
-      limbTube([P3(knee, zK * side), P3(calf, lerp(zK, zA, 0.3) * side), P3([lerp(knee[0], ankle[0], 0.7), lerp(knee[1], ankle[1], 0.7)], lerp(zK, zA, 0.7) * side), P3(ankle, zA * side)], [legW * 0.58, legW * 0.56, legW * 0.36, legW * 0.3], mf, [0.82, 1], 2);
-      limbTube([P3(ankle, zA * side), P3(ball, zB * side)], [legW * 0.3, legW * 0.28], m, [0.85, 1], 3);
+      const calf = [lerp(knee[0], ankle[0], 0.28) - legW * 0.2, lerp(knee[1], ankle[1], 0.28)];
+      limbTube([P3(knee, zK * side), P3(calf, lerp(zK, zA, 0.3) * side), P3([lerp(knee[0], ankle[0], 0.7), lerp(knee[1], ankle[1], 0.7)], lerp(zK, zA, 0.7) * side), P3(ankle, zA * side)], [legW * 0.62, legW * 0.64, legW * 0.36, legW * 0.3], mf, [0.82, 1], 2);
+      // Metatarso con el tobillo marcado y más ancho donde nacen los dedos.
+      limbTube([P3(ankle, zA * side), P3([lerp(ankle[0], ball[0], 0.5), lerp(ankle[1], ball[1], 0.5)], lerp(zA, zB, 0.5) * side), P3(ball, zB * side)], [legW * 0.33, legW * 0.24, legW * 0.36], m, [0.85, 1], 3);
       // Primer dedo (espolón) detrás del metatarso
       claw(P3([ankle[0] + L * 0.02, ankle[1] + L * 0.06], (zA - 1) * side), [-0.4, -0.6, -0.2 * side], legW * 0.3, legW * 0.08, 0.6);
       footBiped(P3(ball, zB * side), side, L, legW, isFar);
@@ -924,9 +979,9 @@ export function buildModel(species, genes, opts = {}) {
         const foot = [wrist[0] + L * (pillar ? 0.02 : 0.05), -w * 0.5];
         legNow = newLeg(t0, elbow, wrist, isFar ? Math.PI * 1.5 : Math.PI * 0.5, -1);
         limbTube([P3([t0[0] + L * 0.03, t0[1] - ry * 0.22], zs * 0.25 * side), P3([t0[0], t0[1] + L * 0.1], zs * 0.78 * side), P3([lerp(t0[0], elbow[0], 0.6), lerp(t0[1], elbow[1], 0.62)], zs * 0.98 * side), P3(elbow, zs * side)], [w * 0.6, w * 0.84, w * 0.72, w * 0.52], m, [0.85, 1], [0, 1]);
-        limbTube([P3(elbow, zs * side), P3([lerp(elbow[0], wrist[0], 0.4) + w * 0.06, lerp(elbow[1], wrist[1], 0.4)], zs * 0.98 * side), P3(wrist, zs * 0.96 * side)], [w * 0.52, w * 0.5, w * 0.4], m, [0.88, 1], 2);
-        limbTube([P3(wrist, zs * 0.96 * side), P3(foot, zs * 0.95 * side)], [w * 0.4, w * 0.47], m, [0.9, 1], 3);
-        quadFoot(P3([foot[0], 0], zs * 0.95 * side), w * 1.05, side, sauropod ? 1 : 3, sauropod || feat.thumb, false, isFar);
+        limbTube([P3(elbow, zs * side), P3([lerp(elbow[0], wrist[0], 0.4) + w * 0.06, lerp(elbow[1], wrist[1], 0.4)], zs * 0.98 * side), P3(wrist, zs * 0.96 * side)], pillar ? [w * 0.52, w * 0.5, w * 0.42] : [w * 0.52, w * 0.45, w * 0.33], m, [0.88, 1], 2);
+        limbTube([P3(wrist, zs * 0.96 * side), P3(foot, zs * 0.95 * side)], pillar ? [w * 0.42, w * 0.46] : [w * 0.33, w * 0.42], m, [0.9, 1], 3);
+        quadFoot(P3([foot[0], 0], zs * 0.95 * side), w * (pillar ? 1.02 : 0.95), side, sauropod ? 1 : 3, sauropod || feat.thumb, false, isFar);
         legNow = 0;
       }
       // Trasera
@@ -940,9 +995,9 @@ export function buildModel(species, genes, opts = {}) {
         legNow = newLeg(t0, knee, ankle, isFar ? Math.PI : 0, 1);
         limbTube([P3([t0[0] - ry * 0.1, t0[1] - ry * 0.3], zh * 0.25 * side), P3([t0[0], t0[1]], zh * 0.62 * side), P3([lerp(t0[0], knee[0], 0.45), t0[1] + L * 0.2], zh * 0.9 * side), P3(knee, zh * side)], [ry * 0.3, ry * 0.5, ry * 0.43, legW * 0.58], m, [0.74, 1], [0, 1]);
         const calf = [lerp(knee[0], ankle[0], 0.3) - legW * 0.1, lerp(knee[1], ankle[1], 0.3)];
-        limbTube([P3(knee, zh * side), P3(calf, zh * 0.98 * side), P3(ankle, zh * 0.95 * side)], [legW * 0.58, legW * 0.54, legW * 0.4], m, [0.85, 1], 2);
-        limbTube([P3(ankle, zh * 0.95 * side), P3(foot, zh * 0.94 * side)], [legW * 0.4, legW * 0.48], m, [0.9, 1], 3);
-        quadFoot(P3([foot[0] + 0.5, 0], zh * 0.94 * side), legW * 1.1, side, 3, false, hooves, isFar);
+        limbTube([P3(knee, zh * side), P3(calf, zh * 0.98 * side), P3(ankle, zh * 0.95 * side)], pillar ? [legW * 0.58, legW * 0.54, legW * 0.42] : [legW * 0.6, legW * 0.52, legW * 0.33], m, [0.85, 1], 2);
+        limbTube([P3(ankle, zh * 0.95 * side), P3(foot, zh * 0.94 * side)], pillar ? [legW * 0.42, legW * 0.47] : [legW * 0.33, legW * 0.43], m, [0.9, 1], 3);
+        quadFoot(P3([foot[0] + 0.5, 0], zh * 0.94 * side), legW * (pillar ? 1.05 : 0.98), side, 3, false, hooves, isFar);
         legs.push({ hip: P3(t0, zh * side), side });
         legNow = 0;
       }

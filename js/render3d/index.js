@@ -6,7 +6,7 @@ import { buildModel } from './model.js';
 import { createRenderer, m4 } from './gl.js';
 import { defaultGenes } from '../render/dino-svg.js';
 
-export const VERSION = 'r3d-3';
+export const VERSION = 'r3d-4';
 const rad = (d) => (d * Math.PI) / 180;
 
 let support = null;
