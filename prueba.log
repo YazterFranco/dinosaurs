@@ -1,0 +1,14 @@
+Performing Streamed Install
+Success
+Starting: Intent { cmp=com.yazterfranco.dinorefugio/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.yazterfranco.dinorefugio/.MainActivity
+TotalTime: 4950
+WaitTime: 4958
+Complete
+    versionCode=10300 minSdk=24 targetSdk=34
+    versionName=1.3.0
+Current WebView Update Service state
+  Current WebView package (name, version): (com.google.android.webview, 113.0.5672.136)
+  Minimum targetSdkVersion: 33
