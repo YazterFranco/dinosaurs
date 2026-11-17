@@ -93,6 +93,33 @@ instalada abre a pantalla completa y funciona sin internet. En iPhone la app
 y Safari guardan partidas separadas: usa el código de guardado de *Ajustes*
 para pasarla.
 
+## App de Android (APK)
+
+El juego también va empaquetado como app de Android: funciona sin internet,
+guarda la partida en el teléfono y la postal se guarda en la galería.
+
+**Descargar el APK ya compilado.** Cada cambio que llega al repositorio se
+compila solo en GitHub y el resultado queda en la rama `apk`:
+
+https://github.com/YazterFranco/dinosaurs/raw/apk/DinoRefugio.apk
+
+Ábrelo en el teléfono (Android 7 o superior) y acepta instalar apps de fuera
+de la tienda. Las versiones nuevas se instalan encima sin perder la partida.
+
+**Compilarlo en tu computadora.** Hace falta el JDK 17 y el SDK de Android
+(Android Studio lo instala; la variable `ANDROID_HOME` debe apuntar a él, o
+crea `android/local.properties` con `sdk.dir=/ruta/al/sdk`):
+
+```bash
+cd android
+./gradlew assembleRelease
+```
+
+El APK queda en
+`android/app/build/outputs/apk/release/DinoRefugio-<versión>-release.apk`.
+Con el teléfono conectado por USB, `./gradlew installRelease` lo instala
+directamente. La versión sale del `package.json` del juego.
+
 ## Pruebas
 
 ```bash
